@@ -964,6 +964,13 @@ func sendAction(_ action: String) {
 func readMessage() -> [String: Any]? {
     let lengthData = FileHandle.standardInput.readData(ofLength: 4)
     guard lengthData.count == 4 else { 
+        // Connection closed (EOF) - extension disconnected
+        debugLog("Connection closed (EOF on stdin) - extension disconnected, exiting...")
+        // Exit the app when the extension disconnects
+        // This is critical for multi-profile support - prevents orphan processes
+        DispatchQueue.main.async {
+            NSApplication.shared.terminate(nil)
+        }
         return nil 
     }
     
@@ -1023,13 +1030,28 @@ func handleMessage(_ message: [String: Any]) {
         if let bundleId = message["bundleId"] as? String {
             if ownerBrowserBundleId == nil {
                 ownerBrowserBundleId = bundleId
-                debugLog("Registered with browser (from extension): \(bundleId)")
+                // Try to detect the PID now if we didn't before
+                if ownerBrowserProcessId == nil {
+                    if let (_, detectedPid) = detectParentBrowser() {
+                        ownerBrowserProcessId = detectedPid
+                        debugLog("Registered with browser (from extension): \(bundleId) with late-detected PID \(detectedPid)")
+                    } else {
+                        debugLog("Registered with browser (from extension): \(bundleId) but couldn't detect PID")
+                    }
+                } else {
+                    debugLog("Registered with browser (from extension): \(bundleId)")
+                }
             } else {
-                debugLog("Already auto-detected browser: \(ownerBrowserBundleId!), ignoring extension registration: \(bundleId)")
+                debugLog("Already auto-detected browser: \(ownerBrowserBundleId!) (PID \(ownerBrowserProcessId ?? -1)), ignoring extension registration: \(bundleId)")
             }
             sendMessage(["action": "registered", "bundleId": ownerBrowserBundleId ?? bundleId])
         }
         
+    case "ping":
+        // Respond to ping to confirm connection is alive
+        debugLog("Received ping, sending pong")
+        sendMessage(["action": "pong"])
+    
     default:
         debugLog("Unknown action: \(action)")
     }
@@ -1063,10 +1085,23 @@ func isSupportedBrowserActive() -> Bool {
         return false
     }
     
-    // If we're registered with a specific browser, only respond to that one
+    // If we're registered with a specific browser process, only respond to that exact process
+    // This is critical for multi-profile support - each Chrome profile is a separate process
+    if let ownerBundle = ownerBrowserBundleId, let ownerPid = ownerBrowserProcessId {
+        // Check both bundle ID AND process ID match
+        let bundleMatches = bundleId == ownerBundle
+        let pidMatches = frontApp.processIdentifier == ownerPid
+        
+        debugLog("Browser check: frontmost=\(bundleId) (PID \(frontApp.processIdentifier)), owner=\(ownerBundle) (PID \(ownerPid)), bundleMatch=\(bundleMatches), pidMatch=\(pidMatches)")
+        
+        // Only respond if this is the exact same browser process that spawned us
+        return bundleMatches && pidMatches
+    }
+    
+    // Fallback: if we only have bundle ID (e.g., from extension registration)
     if let ownerBundle = ownerBrowserBundleId {
         let isOwner = bundleId == ownerBundle
-        debugLog("Browser check: frontmost=\(bundleId), owner=\(ownerBundle), match=\(isOwner)")
+        debugLog("Browser check (bundle only): frontmost=\(bundleId), owner=\(ownerBundle), match=\(isOwner)")
         return isOwner
     }
     
@@ -1088,7 +1123,13 @@ func getActiveBrowserBundleId() -> String? {
         return nil
     }
     
-    // If registered, only return if it's our owner browser
+    // If registered, only return if it's our owner browser process
+    if let ownerBundle = ownerBrowserBundleId, let ownerPid = ownerBrowserProcessId {
+        // Check both bundle ID AND process ID match
+        return (bundleId == ownerBundle && frontApp.processIdentifier == ownerPid) ? bundleId : nil
+    }
+    
+    // Fallback: if we only have bundle ID
     if let ownerBundle = ownerBrowserBundleId {
         return bundleId == ownerBundle ? bundleId : nil
     }
@@ -1110,9 +1151,13 @@ var ctrlIsPressed = false
 var switchInProgress = false
 var tabPressCount = 0
 var ownerBrowserBundleId: String? = nil  // The browser that launched this native host instance
+var ownerBrowserProcessId: pid_t? = nil  // The PID of the specific browser process that launched us
+var myProcessId: pid_t = getpid()  // This native host's PID for identification
+var isEventTapLeader = false  // Whether this instance owns the event tap
 
 // Detect which browser launched this native host by checking parent process
-func detectParentBrowser() -> String? {
+// Returns (bundleId, processId) tuple
+func detectParentBrowser() -> (String, pid_t)? {
     var currentPid = getppid()
     debugLog("Starting parent detection from PID: \(currentPid)")
     
@@ -1125,24 +1170,24 @@ func detectParentBrowser() -> String? {
             
             // Check if this is a known browser
             if BrowserConfigManager.shared.enabledBundleIds.contains(bundleId) {
-                debugLog("Found browser at level \(level): \(bundleId)")
-                return bundleId
+                debugLog("Found browser at level \(level): \(bundleId) with PID \(currentPid)")
+                return (bundleId, currentPid)
             }
             
             // Check for browser helper processes by name
             if bundleId.contains("Chrome") || app.localizedName?.contains("Chrome") == true {
-                debugLog("Found Chrome-related process, assuming com.google.Chrome")
-                return "com.google.Chrome"
+                debugLog("Found Chrome-related process, assuming com.google.Chrome with PID \(currentPid)")
+                return ("com.google.Chrome", currentPid)
             }
             if bundleId.contains("Helium") || bundleId.contains("imput") {
-                debugLog("Found Helium-related process")
-                return "net.imput.helium"
+                debugLog("Found Helium-related process with PID \(currentPid)")
+                return ("net.imput.helium", currentPid)
             }
             if bundleId.contains("Brave") {
-                return "com.brave.Browser"
+                return ("com.brave.Browser", currentPid)
             }
             if bundleId.contains("Edge") {
-                return "com.microsoft.edgemac"
+                return ("com.microsoft.edgemac", currentPid)
             }
         }
         
@@ -1171,6 +1216,165 @@ func detectParentBrowser() -> String? {
 var showUITimer: DispatchWorkItem? = nil
 let showUIDelay: Double = 0.15 // 150ms delay before showing UI
 
+// Lock file for event tap coordination - only one native host should have the event tap
+let eventTapLockFile = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".tabswitcher_eventtap.lock")
+
+// Check if we should be the event tap leader (first one to claim the lock)
+func tryBecomeEventTapLeader() -> Bool {
+    let myPid = getpid()
+    
+    // Check if lock file exists
+    if FileManager.default.fileExists(atPath: eventTapLockFile.path) {
+        // Read existing PID
+        if let contents = try? String(contentsOf: eventTapLockFile, encoding: .utf8),
+           let existingPid = Int32(contents.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            // Check if that process is still running
+            if kill(existingPid, 0) == 0 {
+                // Process is still running - we're not the leader
+                debugLog("Another native host (PID \(existingPid)) owns the event tap, we (PID \(myPid)) will listen only")
+                return false
+            }
+        }
+    }
+    
+    // Claim the lock
+    do {
+        try String(myPid).write(to: eventTapLockFile, atomically: true, encoding: .utf8)
+        debugLog("We (PID \(myPid)) are now the event tap leader")
+        return true
+    } catch {
+        debugLog("Failed to write lock file: \(error)")
+        return false
+    }
+}
+
+// Clean up lock file on exit
+func cleanupEventTapLock() {
+    if isEventTapLeader {
+        try? FileManager.default.removeItem(at: eventTapLockFile)
+        debugLog("Cleaned up event tap lock file")
+    }
+}
+
+// Distributed notification names for IPC between native hosts
+let ctrlTabNotificationName = "com.tabswitcher.ctrlTab"
+let ctrlReleaseNotificationName = "com.tabswitcher.ctrlRelease"
+
+// Setup listener for distributed notifications (for non-leader hosts)
+func setupNotificationListener() {
+    let center = DistributedNotificationCenter.default()
+    
+    center.addObserver(forName: NSNotification.Name(ctrlTabNotificationName), object: nil, queue: .main) { notification in
+        guard let userInfo = notification.userInfo,
+              let direction = userInfo["direction"] as? String,
+              let showUI = userInfo["showUI"] as? Bool,
+              let combineWindows = userInfo["combineWindows"] as? Bool,
+              let targetBrowser = userInfo["targetBrowser"] as? String else {
+            return
+        }
+        
+        // Only respond if this notification is for OUR browser
+        guard let myBrowser = ownerBrowserBundleId, myBrowser == targetBrowser else {
+            debugLog("Ignoring ctrl-tab notification - target=\(targetBrowser), we are=\(ownerBrowserBundleId ?? "unknown")")
+            return
+        }
+        
+        debugLog("Received ctrl-tab notification for our browser: direction=\(direction), showUI=\(showUI)")
+        
+        // Send to our extension
+        sendMessage([
+            "action": direction,
+            "show_ui": showUI,
+            "current_window_only": !combineWindows
+        ])
+    }
+    
+    center.addObserver(forName: NSNotification.Name(ctrlReleaseNotificationName), object: nil, queue: .main) { notification in
+        // Only respond if this is for our browser
+        if let userInfo = notification.userInfo,
+           let targetBrowser = userInfo["targetBrowser"] as? String {
+            guard let myBrowser = ownerBrowserBundleId, myBrowser == targetBrowser else {
+                return
+            }
+        }
+        
+        debugLog("Received ctrl-release notification")
+        sendAction("end_switch")
+    }
+    
+    center.addObserver(forName: NSNotification.Name("com.tabswitcher.requestShowUI"), object: nil, queue: .main) { notification in
+        guard let userInfo = notification.userInfo,
+              let combineWindows = userInfo["combineWindows"] as? Bool else {
+            return
+        }
+        
+        // Only respond if this is for our browser
+        if let targetBrowser = userInfo["targetBrowser"] as? String {
+            guard let myBrowser = ownerBrowserBundleId, myBrowser == targetBrowser else {
+                return
+            }
+        }
+        
+        debugLog("Received request-show-ui notification")
+        sendMessage(["action": "request_show_ui", "current_window_only": !combineWindows])
+    }
+    
+    debugLog("Notification listener setup complete (PID \(myProcessId), browser=\(ownerBrowserBundleId ?? "unknown"))")
+}
+
+// Get the frontmost browser's bundle ID
+func getFrontmostBrowserBundleId() -> String? {
+    guard let frontApp = NSWorkspace.shared.frontmostApplication,
+          let bundleId = frontApp.bundleIdentifier,
+          BrowserConfigManager.shared.enabledBundleIds.contains(bundleId) else {
+        return nil
+    }
+    return bundleId
+}
+
+// Post notification to all native hosts - includes frontmost browser so only that browser responds
+func postCtrlTabNotification(direction: String, showUI: Bool, combineWindows: Bool) {
+    guard let frontmostBrowser = getFrontmostBrowserBundleId() else { return }
+    
+    let center = DistributedNotificationCenter.default()
+    center.postNotificationName(
+        NSNotification.Name(ctrlTabNotificationName),
+        object: nil,
+        userInfo: [
+            "direction": direction,
+            "showUI": showUI,
+            "combineWindows": combineWindows,
+            "targetBrowser": frontmostBrowser
+        ],
+        deliverImmediately: true
+    )
+    debugLog("Posted ctrl-tab notification for browser: \(frontmostBrowser)")
+}
+
+func postCtrlReleaseNotification() {
+    guard let frontmostBrowser = getFrontmostBrowserBundleId() else { return }
+    
+    let center = DistributedNotificationCenter.default()
+    center.postNotificationName(
+        NSNotification.Name(ctrlReleaseNotificationName),
+        object: nil,
+        userInfo: ["targetBrowser": frontmostBrowser],
+        deliverImmediately: true
+    )
+}
+
+func postRequestShowUINotification(combineWindows: Bool) {
+    guard let frontmostBrowser = getFrontmostBrowserBundleId() else { return }
+    
+    let center = DistributedNotificationCenter.default()
+    center.postNotificationName(
+        NSNotification.Name("com.tabswitcher.requestShowUI"),
+        object: nil,
+        userInfo: ["combineWindows": combineWindows, "targetBrowser": frontmostBrowser],
+        deliverImmediately: true
+    )
+}
+
 // MARK: - Event Tap Callback
 
 func eventTapCallback(
@@ -1190,7 +1394,10 @@ func eventTapCallback(
     }
     
     // Only process when a supported browser is active
-    guard isSupportedBrowserActive() else {
+    // Check if ANY Chrome is frontmost (not profile-specific)
+    guard let frontApp = NSWorkspace.shared.frontmostApplication,
+          let bundleId = frontApp.bundleIdentifier,
+          BrowserConfigManager.shared.enabledBundleIds.contains(bundleId) else {
         return Unmanaged.passRetained(event)
     }
     
@@ -1207,7 +1414,8 @@ func eventTapCallback(
             showUITimer?.cancel()
             showUITimer = nil
             
-            sendAction("end_switch")
+            // Broadcast to ALL native hosts
+            postCtrlReleaseNotification()
             switchInProgress = false
             tabPressCount = 0
         }
@@ -1233,21 +1441,19 @@ func eventTapCallback(
             // Reload config from disk to pick up any changes made in the config UI
             BrowserConfigManager.shared.loadConfig()
             
-            // Get the combineAllWindows setting for the current browser
-            let combineWindows = ownerBrowserBundleId.flatMap { bundleId in
-                BrowserConfigManager.shared.browsers.first { $0.id == bundleId }?.combineAllWindows
-            } ?? false
+            // Get the combineAllWindows setting - use false as default for safety
+            let combineWindows = false
             
-            debugLog("combineWindows=\(combineWindows) for browser \(ownerBrowserBundleId ?? "nil")")
+            debugLog("Broadcasting Ctrl+Tab: direction=\(direction), tabPressCount=\(tabPressCount)")
             
             if tabPressCount == 1 {
                 // First Tab press: cycle but don't show UI yet
-                sendMessage(["action": direction, "show_ui": false, "current_window_only": !combineWindows])
+                postCtrlTabNotification(direction: direction, showUI: false, combineWindows: combineWindows)
                 
                 // Start timer to show UI after delay
                 showUITimer?.cancel()
                 let timer = DispatchWorkItem {
-                    sendMessage(["action": "request_show_ui", "current_window_only": !combineWindows])
+                    postRequestShowUINotification(combineWindows: combineWindows)
                 }
                 showUITimer = timer
                 DispatchQueue.main.asyncAfter(deadline: .now() + showUIDelay, execute: timer)
@@ -1255,7 +1461,7 @@ func eventTapCallback(
                 // Second+ Tab press: show UI immediately
                 showUITimer?.cancel()
                 showUITimer = nil
-                sendMessage(["action": direction, "show_ui": true, "current_window_only": !combineWindows])
+                postCtrlTabNotification(direction: direction, showUI: true, combineWindows: combineWindows)
             }
             
             // Suppress the event
@@ -1373,7 +1579,7 @@ func showAccessibilityAlert() {
 
 // Main entry point
 func main() {
-    debugLog("Tab Switcher Native Host starting...")
+    debugLog("Tab Switcher Native Host starting (PID \(myProcessId))...")
     
     let directLaunch = isLaunchedDirectly()
     debugLog("Launched directly: \(directLaunch)")
@@ -1387,35 +1593,57 @@ func main() {
         }
     }
     
-    // Setup event tap first
-    let eventTapSuccess = setupEventTap()
-    if !eventTapSuccess {
-        debugLog("Failed to setup event tap")
-        // If launched directly, show alert about accessibility permission
-        if directLaunch {
-            // Need to initialize NSApp first for alerts
-            let app = NSApplication.shared
-            app.setActivationPolicy(.regular)
-            showAccessibilityAlert()
-            
-            // Continue with config UI only
-            let delegate = AppDelegate()
-            delegate.launchedDirectly = true
-            app.delegate = delegate
-            BrowserConfigManager.shared.showingSetup = true
-            app.run()
-            return
-        }
-        exit(1)
+    // Try to become the event tap leader (only one native host should have the event tap)
+    isEventTapLeader = tryBecomeEventTapLeader()
+    
+    // Setup cleanup on exit using signal handlers
+    signal(SIGTERM) { _ in
+        cleanupEventTapLock()
+        exit(0)
     }
-    debugLog("Event tap setup complete")
+    signal(SIGINT) { _ in
+        cleanupEventTapLock()
+        exit(0)
+    }
+    
+    // Only setup event tap if we're the leader
+    if isEventTapLeader {
+        let eventTapSuccess = setupEventTap()
+        if !eventTapSuccess {
+            debugLog("Failed to setup event tap")
+            // If launched directly, show alert about accessibility permission
+            if directLaunch {
+                // Need to initialize NSApp first for alerts
+                let app = NSApplication.shared
+                app.setActivationPolicy(.regular)
+                showAccessibilityAlert()
+                
+                // Continue with config UI only
+                let delegate = AppDelegate()
+                delegate.launchedDirectly = true
+                app.delegate = delegate
+                BrowserConfigManager.shared.showingSetup = true
+                app.run()
+                return
+            }
+            exit(1)
+        }
+        debugLog("Event tap setup complete (we are the leader)")
+    } else {
+        debugLog("Not the event tap leader, will listen for notifications only")
+    }
+    
+    // Setup notification listener for receiving broadcasts from the leader
+    setupNotificationListener()
     
     // Only start message reader if launched via native messaging
     if !directLaunch {
         // Detect which browser launched us BEFORE anything else
-        if let detectedBrowser = detectParentBrowser() {
-            ownerBrowserBundleId = detectedBrowser
-            debugLog("Auto-detected owner browser: \(detectedBrowser)")
+        // We need both bundle ID and process ID to correctly handle multiple profiles
+        if let (detectedBundleId, detectedPid) = detectParentBrowser() {
+            ownerBrowserBundleId = detectedBundleId
+            ownerBrowserProcessId = detectedPid
+            debugLog("Auto-detected owner browser: \(detectedBundleId) with PID \(detectedPid)")
         } else {
             debugLog("WARNING: Could not auto-detect browser, will wait for registration")
         }

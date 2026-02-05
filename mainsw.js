@@ -20,8 +20,8 @@ var slowtimerValue = 1500;
 var fasttimerValue = 200;
 var timer;
 
-// Debug logging (disabled for performance)
-var loggingOn = false;
+// Debug logging (enabled for troubleshooting)
+var loggingOn = true;
 
 // Native messaging for Ctrl+Tab interception
 var nativePort = null;
@@ -441,13 +441,18 @@ var connectNativeHost = function() {
 		nativePort.onMessage.addListener(function(message) {
 			log("Native message received: " + JSON.stringify(message));
 			
+			// Mark connection as alive on any message
+			nativeHostConnected = true;
+			
 			if (message.action === "ready") {
-				nativeHostConnected = true;
 				log("Native host is ready, registering browser: " + browserBundleId);
 				// Register this extension with its browser's bundle ID
 				sendToNativeHost({ action: "register", bundleId: browserBundleId });
 			} else if (message.action === "registered") {
 				log("Successfully registered with native host for browser: " + message.bundleId);
+			} else if (message.action === "pong") {
+				// Ping response - connection is alive
+				log("Received pong - connection alive");
 			} else if (message.action === "cycle_next") {
 				handleNativeCycle(1, message.show_ui, message.current_window_only);
 			} else if (message.action === "cycle_prev") {
@@ -470,8 +475,8 @@ var connectNativeHost = function() {
 			nativePort = null;
 			nativeHostConnected = false;
 			
-			// Try to reconnect after a delay
-			setTimeout(connectNativeHost, 5000);
+			// Try to reconnect after a short delay
+			setTimeout(connectNativeHost, 1000);
 		});
 
 	} catch (e) {
@@ -532,11 +537,52 @@ var getFilteredMru = async function() {
 	}
 };
 
+// Check if any window from this profile is currently focused
+// This is critical for multi-profile support - only the focused profile should respond
+var isThisProfileFocused = async function() {
+	try {
+		// Get all windows in this profile
+		var allWindows = await chrome.windows.getAll({windowTypes: ['normal']});
+		log("TabSwitch::Profile has " + allWindows.length + " windows");
+		
+		for (var win of allWindows) {
+			log("TabSwitch::  Window id=" + win.id + " focused=" + win.focused + " state=" + win.state);
+			if (win.focused) {
+				log("TabSwitch::This profile has a focused window (id=" + win.id + ")");
+				return true;
+			}
+		}
+		log("TabSwitch::This profile has NO focused windows - ignoring command");
+		return false;
+	} catch (e) {
+		log("TabSwitch::Error checking focused windows: " + e.message);
+		// If we can't check, assume we're not focused to avoid conflicts
+		return false;
+	}
+};
+
 // Handle cycle in either direction
 // direction: 1 for next, -1 for prev
 // showUI: whether to show the visual switcher
 var handleNativeCycle = async function(direction, showUI, windowOnly) {
 	log("TabSwitch::NATIVE_CYCLE direction=" + direction + " showUI=" + showUI + " currentWindowOnly=" + windowOnly);
+	
+	// CRITICAL: Check if this profile's window is focused before responding
+	// This prevents multiple profiles from all responding to the same Ctrl+Tab
+	// Check on EVERY command, not just when starting
+	var isFocused = await isThisProfileFocused();
+	if (!isFocused) {
+		log("TabSwitch::Ignoring cycle - this profile is not focused");
+		// If we were in a switch but lost focus, end it
+		if (nativeSwitchOngoing) {
+			log("TabSwitch::Lost focus mid-switch, ending");
+			nativeSwitchOngoing = false;
+			uiShownDuringSwitch = false;
+			filteredMru = [];
+			currentWindowOnly = false;
+		}
+		return;
+	}
 	
 	if (!nativeSwitchOngoing) {
 		// Start a new native switch
@@ -589,6 +635,13 @@ var handleNativeCycle = async function(direction, showUI, windowOnly) {
 var handleRequestShowUI = async function(windowOnly) {
 	log("TabSwitch::REQUEST_SHOW_UI windowOnly=" + windowOnly);
 	
+	// Double-check we're still the focused profile before showing UI
+	var isFocused = await isThisProfileFocused();
+	if (!isFocused) {
+		log("TabSwitch::Ignoring show UI request - this profile is not focused");
+		return;
+	}
+	
 	if (nativeSwitchOngoing && !uiShownDuringSwitch) {
 		uiShownDuringSwitch = true;
 		var tabData = await getTabDataForSwitcher();
@@ -600,9 +653,11 @@ var handleRequestShowUI = async function(windowOnly) {
 	}
 };
 
-var handleNativeEndSwitch = function() {
+var handleNativeEndSwitch = async function() {
 	log("TabSwitch::NATIVE_END_SWITCH, switching to index: " + lastIntSwitchIndex);
 	
+	// Only handle end switch if we were the one doing the switch
+	// Check if this profile is focused OR if we had started a switch
 	if (nativeSwitchOngoing) {
 		// Tell native host to hide the switcher (if it was shown)
 		if (uiShownDuringSwitch) {
@@ -611,6 +666,16 @@ var handleNativeEndSwitch = function() {
 			});
 		}
 		uiShownDuringSwitch = false;
+		
+		// Double-check we're still the focused profile before activating tabs
+		var isFocused = await isThisProfileFocused();
+		if (!isFocused) {
+			log("TabSwitch::Ignoring end switch - this profile is no longer focused");
+			nativeSwitchOngoing = false;
+			filteredMru = [];
+			currentWindowOnly = false;
+			return;
+		}
 		
 		// NOW actually switch to the selected tab (use filteredMru which was set during this switch)
 		var tabIdToActivate = filteredMru[lastIntSwitchIndex];
@@ -646,6 +711,29 @@ initialize();
 
 // Connect to native host for Ctrl+Tab interception
 connectNativeHost();
+
+// Reconnect native host when this profile's window gains focus
+// This fixes the issue where the service worker goes dormant when the profile is in the background
+chrome.windows.onFocusChanged.addListener(function(windowId) {
+	if (windowId !== chrome.windows.WINDOW_ID_NONE) {
+		log("Window focus changed to: " + windowId);
+		// Check if the native host connection is still alive
+		if (!nativePort || !nativeHostConnected) {
+			log("Native host connection lost, reconnecting...");
+			connectNativeHost();
+		} else {
+			// Send a ping to verify the connection is still working
+			try {
+				sendToNativeHost({ action: "ping" });
+			} catch (e) {
+				log("Ping failed, reconnecting: " + e.message);
+				nativePort = null;
+				nativeHostConnected = false;
+				connectNativeHost();
+			}
+		}
+	}
+});
 
 // Capture initial thumbnail after a short delay (to let page load)
 setTimeout(captureCurrentTabThumbnail, 2000);
