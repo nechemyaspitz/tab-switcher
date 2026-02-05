@@ -3,8 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy - Tab Switcher</title>
+    <title>Privacy — Tab Switcher</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #08080a;
+            --surface: #111113;
+            --border: #1e1e21;
+            --text: #fafafa;
+            --text-muted: #71717a;
+            --accent: #e4e4e7;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -12,65 +25,129 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
             min-height: 100vh;
-            color: #fff;
-            line-height: 1.8;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
         }
         
         .container {
-            max-width: 700px;
+            max-width: 640px;
             margin: 0 auto;
-            padding: 60px 20px;
+            padding: 80px 24px;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            margin-bottom: 48px;
+            transition: color 0.2s;
+        }
+        
+        .back-link:hover {
+            color: var(--text);
+        }
+        
+        .back-link svg {
+            width: 16px;
+            height: 16px;
         }
         
         h1 {
-            font-size: 2.5rem;
-            margin-bottom: 16px;
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: clamp(2.5rem, 6vw, 3rem);
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
         }
         
         .date {
-            color: #8892b0;
-            margin-bottom: 40px;
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.02em;
+            margin-bottom: 48px;
         }
         
         h2 {
-            font-size: 1.4rem;
-            margin-top: 40px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-top: 48px;
             margin-bottom: 16px;
-            color: #a8dadc;
+            letter-spacing: -0.01em;
         }
         
         p {
-            color: #ccd6f6;
+            color: var(--text-muted);
             margin-bottom: 16px;
         }
         
+        strong {
+            color: var(--text);
+            font-weight: 500;
+        }
+        
         ul {
-            color: #ccd6f6;
-            margin-left: 24px;
+            color: var(--text-muted);
+            margin-left: 20px;
             margin-bottom: 16px;
         }
         
         li {
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            padding-left: 4px;
+        }
+        
+        code {
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.85em;
+            background: var(--surface);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
         }
         
         a {
-            color: #a8dadc;
+            color: var(--text);
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            text-decoration-color: var(--border);
+            transition: text-decoration-color 0.2s;
+        }
+        
+        a:hover {
+            text-decoration-color: var(--text-muted);
         }
         
         footer {
-            margin-top: 60px;
-            padding-top: 40px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            color: #8892b0;
+            margin-top: 64px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border);
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <a href="index.html" class="back-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Back
+        </a>
+        
         <h1>Privacy Policy</h1>
         <p class="date">Last updated: February 5, 2026</p>
         
@@ -91,31 +168,34 @@
         <h2>Local Data</h2>
         <p>Tab Switcher stores the following data locally on your device:</p>
         <ul>
-            <li><strong>Tab thumbnails:</strong> Temporarily cached in memory to display in the tab switcher UI. These are never saved to disk or transmitted anywhere.</li>
-            <li><strong>Browser configuration:</strong> Your enabled browsers and settings are saved locally to <code>~/Library/Application Support/TabSwitcher/</code>.</li>
+            <li><strong>Tab thumbnails</strong> — Temporarily cached in memory to display in the tab switcher UI. Never saved to disk or transmitted.</li>
+            <li><strong>Browser configuration</strong> — Your enabled browsers and settings, saved locally to <code>~/Library/Application Support/TabSwitcher/</code></li>
         </ul>
         <p>This data never leaves your device.</p>
         
         <h2>Permissions</h2>
         <p>The extension requires certain permissions to function:</p>
         <ul>
-            <li><strong>tabs:</strong> To access tab information (titles, favicons) for the switcher UI</li>
-            <li><strong>activeTab:</strong> To capture thumbnails of the currently active tab</li>
-            <li><strong>nativeMessaging:</strong> To communicate with the companion macOS app</li>
-            <li><strong>host_permissions (all_urls):</strong> Required to capture tab thumbnails across all websites</li>
+            <li><strong>tabs</strong> — Access tab information (titles, favicons) for the switcher UI</li>
+            <li><strong>activeTab</strong> — Capture thumbnails of the currently active tab</li>
+            <li><strong>nativeMessaging</strong> — Communicate with the companion macOS app</li>
+            <li><strong>host_permissions</strong> — Required to capture tab thumbnails across all websites</li>
         </ul>
         
         <h2>Third-Party Services</h2>
         <p>Tab Switcher does not use any third-party analytics, tracking, or advertising services.</p>
         
-        <h2>Changes to This Policy</h2>
+        <h2>Changes</h2>
         <p>We may update this privacy policy from time to time. Any changes will be posted on this page.</p>
         
         <h2>Contact</h2>
-        <p>If you have questions about this privacy policy, please open an issue on our <a href="https://github.com/yourusername/tab-switcher">GitHub repository</a>.</p>
+        <p>Questions? Open an issue on our <a href="https://github.com/nechemyaspitz/tab-switcher">GitHub repository</a>.</p>
         
         <footer>
-            <p><a href="index.html">← Back to Home</a></p>
+            <a href="index.html" class="back-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back to home
+            </a>
         </footer>
     </div>
 </body>

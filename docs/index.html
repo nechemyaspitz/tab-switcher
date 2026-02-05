@@ -3,271 +3,509 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tab Switcher - macOS-style Tab Switching for Chrome</title>
+    <title>Tab Switcher — Ctrl+Tab, Reimagined</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #08080a;
+            --surface: #111113;
+            --border: #1e1e21;
+            --text: #fafafa;
+            --text-muted: #71717a;
+            --accent: #e4e4e7;
+            --glow: rgba(255, 255, 255, 0.03);
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
         
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-            color: #fff;
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
         }
         
         .container {
-            max-width: 900px;
+            max-width: 1100px;
             margin: 0 auto;
-            padding: 60px 20px;
+            padding: 0 24px;
         }
         
-        header {
-            text-align: center;
-            margin-bottom: 60px;
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 20px 0;
+            background: linear-gradient(to bottom, var(--bg) 0%, transparent 100%);
+        }
+        
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .logo {
-            width: 120px;
-            height: 120px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            letter-spacing: -0.02em;
+        }
+        
+        .logo img {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+        }
+        
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+        
+        nav a:hover {
+            color: var(--text);
+        }
+        
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 120px 0 80px;
+            position: relative;
+        }
+        
+        .hero-content {
+            max-width: 720px;
+        }
+        
+        .eyebrow {
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
             margin-bottom: 24px;
-            border-radius: 24px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .eyebrow::before {
+            content: '';
+            width: 24px;
+            height: 1px;
+            background: var(--text-muted);
         }
         
         h1 {
-            font-size: 3rem;
-            font-weight: 700;
-            margin-bottom: 16px;
-            background: linear-gradient(90deg, #fff, #a8dadc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .tagline {
-            font-size: 1.4rem;
-            color: #a8dadc;
-            margin-bottom: 8px;
-        }
-        
-        .subtitle {
-            font-size: 1.1rem;
-            color: #8892b0;
-        }
-        
-        .hero-visual {
-            background: rgba(255,255,255,0.05);
-            border-radius: 16px;
-            padding: 40px;
-            margin: 40px 0;
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .shortcut-demo {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(0,0,0,0.3);
-            padding: 20px 32px;
-            border-radius: 12px;
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-        
-        .key {
-            background: linear-gradient(145deg, #3a3a5c, #2a2a4c);
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 0 #1a1a3c, 0 6px 20px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 24px;
-            margin: 50px 0;
-        }
-        
-        .feature {
-            background: rgba(255,255,255,0.05);
-            padding: 28px;
-            border-radius: 16px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .feature h3 {
-            font-size: 1.2rem;
-            margin-bottom: 12px;
-            color: #a8dadc;
-        }
-        
-        .feature p {
-            color: #8892b0;
-            font-size: 0.95rem;
-        }
-        
-        .download-section {
-            text-align: center;
-            margin: 60px 0;
-        }
-        
-        .download-section h2 {
-            font-size: 2rem;
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: clamp(3.5rem, 10vw, 6rem);
+            font-weight: 400;
+            line-height: 1;
+            letter-spacing: -0.03em;
             margin-bottom: 32px;
         }
         
-        .download-buttons {
-            display: flex;
-            flex-wrap: wrap;
+        h1 em {
+            font-style: italic;
+            color: var(--text-muted);
+        }
+        
+        .hero-description {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 480px;
+            line-height: 1.7;
+            margin-bottom: 48px;
+        }
+        
+        /* Keyboard visual */
+        .keyboard-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 64px;
+            padding: 16px 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+        
+        .key {
+            display: inline-flex;
+            align-items: center;
             justify-content: center;
-            gap: 20px;
+            min-width: 48px;
+            height: 40px;
+            padding: 0 14px;
+            background: linear-gradient(180deg, #1a1a1d 0%, #0f0f10 100%);
+            border: 1px solid #2a2a2d;
+            border-radius: 6px;
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent);
+            box-shadow: 
+                0 1px 0 #2a2a2d,
+                0 4px 8px rgba(0,0,0,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .key-separator {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+        
+        /* CTA Buttons */
+        .cta-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
         }
         
         .btn {
             display: inline-flex;
             align-items: center;
-            gap: 12px;
-            padding: 18px 32px;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: 600;
+            gap: 10px;
+            padding: 14px 28px;
+            font-size: 0.9rem;
+            font-weight: 500;
             text-decoration: none;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
-            color: #fff;
+            background: var(--text);
+            color: var(--bg);
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent);
+            transform: translateY(-1px);
         }
         
         .btn-secondary {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.2);
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--surface);
+            border-color: #2a2a2d;
         }
         
         .btn svg {
-            width: 24px;
-            height: 24px;
+            width: 18px;
+            height: 18px;
         }
         
-        .requirements {
-            background: rgba(255,255,255,0.03);
-            border-radius: 12px;
-            padding: 24px;
-            margin-top: 40px;
-            text-align: center;
+        /* Features - Editorial list */
+        .features {
+            padding: 120px 0;
+            border-top: 1px solid var(--border);
         }
         
-        .requirements h3 {
-            color: #a8dadc;
+        .features-header {
+            margin-bottom: 80px;
+        }
+        
+        .features-header h2 {
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 400;
+            letter-spacing: -0.02em;
+        }
+        
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .feature-item {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 40px;
+            padding: 40px 0;
+            border-bottom: 1px solid var(--border);
+            align-items: baseline;
+        }
+        
+        .feature-item:first-child {
+            border-top: 1px solid var(--border);
+        }
+        
+        .feature-number {
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        
+        .feature-content h3 {
+            font-size: 1.5rem;
+            font-weight: 500;
             margin-bottom: 12px;
+            letter-spacing: -0.02em;
         }
         
-        .requirements p {
-            color: #8892b0;
-            font-size: 0.9rem;
+        .feature-content p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            max-width: 560px;
+            line-height: 1.7;
         }
         
-        footer {
+        /* Download section */
+        .download {
+            padding: 120px 0;
             text-align: center;
-            margin-top: 80px;
-            padding-top: 40px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            color: #8892b0;
         }
         
-        footer a {
-            color: #a8dadc;
+        .download h2 {
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 400;
+            margin-bottom: 16px;
+        }
+        
+        .download-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 48px;
+            font-size: 1.1rem;
+        }
+        
+        .download-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 48px;
+        }
+        
+        .system-req {
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.02em;
+        }
+        
+        /* Footer */
+        footer {
+            padding: 48px 0;
+            border-top: 1px solid var(--border);
+        }
+        
+        footer .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 32px;
+        }
+        
+        .footer-links a {
+            color: var(--text-muted);
             text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s;
         }
         
-        footer a:hover {
-            text-decoration: underline;
+        .footer-links a:hover {
+            color: var(--text);
+        }
+        
+        .footer-copy {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        
+        /* Animations */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .hero-content > * {
+            animation: fadeUp 0.8s ease forwards;
+            opacity: 0;
+        }
+        
+        .hero-content > *:nth-child(1) { animation-delay: 0.1s; }
+        .hero-content > *:nth-child(2) { animation-delay: 0.2s; }
+        .hero-content > *:nth-child(3) { animation-delay: 0.3s; }
+        .hero-content > *:nth-child(4) { animation-delay: 0.4s; }
+        .hero-content > *:nth-child(5) { animation-delay: 0.5s; }
+        
+        /* Responsive */
+        @media (max-width: 640px) {
+            .feature-item {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .hero {
+                padding-top: 100px;
+            }
+            
+            .keyboard-hint {
+                margin-top: 40px;
+            }
+            
+            footer .container {
+                flex-direction: column;
+                text-align: center;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <img src="icon128.png" alt="Tab Switcher" class="logo">
-            <h1>Tab Switcher</h1>
-            <p class="tagline">macOS-style Tab Switching for Chrome</p>
-            <p class="subtitle">Switch between tabs like you switch between apps</p>
-        </header>
-        
-        <div class="hero-visual">
-            <div class="shortcut-demo">
-                <span class="key">⌃ Ctrl</span>
-                <span>+</span>
-                <span class="key">⇥ Tab</span>
+    <nav>
+        <div class="container">
+            <div class="logo">
+                <img src="favicon.svg" alt="">
+                Tab Switcher
             </div>
-            <p style="margin-top: 20px; color: #8892b0;">
-                Hold Ctrl, press Tab to cycle, release Ctrl to switch
-            </p>
+            <a href="https://github.com/nechemyaspitz/tab-switcher">GitHub</a>
         </div>
-        
-        <div class="features">
-            <div class="feature">
-                <h3>🎯 Visual Preview</h3>
-                <p>See tab thumbnails and titles as you cycle through your recently used tabs.</p>
-            </div>
-            <div class="feature">
-                <h3>⚡ Lightning Fast</h3>
-                <p>Native macOS app ensures instant response with zero lag.</p>
-            </div>
-            <div class="feature">
-                <h3>🔄 MRU Order</h3>
-                <p>Tabs are ordered by most recently used, just like macOS Cmd+Tab.</p>
-            </div>
-            <div class="feature">
-                <h3>🌐 Multi-Browser</h3>
-                <p>Works with Chrome, Brave, Edge, Arc, Vivaldi, and more Chromium browsers.</p>
+    </nav>
+    
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <p class="eyebrow">For macOS & Chromium browsers</p>
+                <h1>Ctrl+Tab,<br><em>reimagined</em></h1>
+                <p class="hero-description">
+                    Switch between browser tabs the way you switch between apps. 
+                    Visual previews, most-recently-used order, zero friction.
+                </p>
+                <div class="cta-group">
+                    <a href="#download" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Download
+                    </a>
+                    <a href="setup.html" class="btn btn-secondary">Setup Guide</a>
+                </div>
+                <div class="keyboard-hint">
+                    <span class="key">⌃ Ctrl</span>
+                    <span class="key-separator">+</span>
+                    <span class="key">Tab ⇥</span>
+                </div>
             </div>
         </div>
-        
-        <div class="download-section">
-            <h2>Get Started</h2>
-            <p style="color: #8892b0; margin-bottom: 32px;">
-                Tab Switcher requires both a browser extension and a companion macOS app.
-            </p>
-            
+    </section>
+    
+    <section class="features">
+        <div class="container">
+            <div class="features-header">
+                <h2>Built different</h2>
+            </div>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <span class="feature-number">01</span>
+                    <div class="feature-content">
+                        <h3>Visual tab previews</h3>
+                        <p>See live thumbnails and titles as you cycle. No more guessing which tab is which.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-number">02</span>
+                    <div class="feature-content">
+                        <h3>Most recently used</h3>
+                        <p>Tabs ordered by recency, not position. Jump between your two most recent tabs instantly with a single Ctrl+Tab.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-number">03</span>
+                    <div class="feature-content">
+                        <h3>Native performance</h3>
+                        <p>A lightweight macOS companion app intercepts the shortcut at the system level. Instant response, every time.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-number">04</span>
+                    <div class="feature-content">
+                        <h3>Multi-browser support</h3>
+                        <p>Chrome, Brave, Edge, Arc, Vivaldi, Opera—any Chromium browser works with a single installation.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="download" id="download">
+        <div class="container">
+            <h2>Get Tab Switcher</h2>
+            <p class="download-subtitle">Two components: a browser extension and a companion macOS app.</p>
             <div class="download-buttons">
-                <a href="#" class="btn btn-primary" id="download-app">
+                <a href="#" class="btn btn-primary">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
                     Download for macOS
                 </a>
-                <a href="#" class="btn btn-secondary" id="chrome-store">
+                <a href="#" class="btn btn-secondary">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C8.21 0 4.831 1.757 2.632 4.501l3.953 6.848A5.454 5.454 0 0 1 12 6.545h10.691A12 12 0 0 0 12 0zM1.931 5.47A11.943 11.943 0 0 0 0 12c0 6.012 4.42 10.991 10.189 11.864l3.953-6.847a5.45 5.45 0 0 1-6.865-2.29zm13.342 2.166a5.446 5.446 0 0 1 1.45 7.09l.002.001h-.002l-5.344 9.257c.206.01.413.016.621.016 6.627 0 12-5.373 12-12 0-1.54-.29-3.011-.818-4.364zM12 16.364a4.364 4.364 0 1 1 0-8.728 4.364 4.364 0 0 1 0 8.728z"/></svg>
                     Chrome Web Store
                 </a>
             </div>
-            
-            <div class="requirements">
-                <h3>Requirements</h3>
-                <p>macOS 14.0 or later • Chrome, Brave, Edge, Arc, or other Chromium browser</p>
-            </div>
+            <p class="system-req">Requires macOS 14+ and a Chromium-based browser</p>
         </div>
-        
-        <footer>
-            <p>
-                <a href="https://github.com/yourusername/tab-switcher">GitHub</a> · 
-                <a href="privacy.html">Privacy Policy</a>
-            </p>
-            <p style="margin-top: 12px; font-size: 0.85rem;">
-                Made with ❤️ for productivity enthusiasts
-            </p>
-        </footer>
-    </div>
+    </section>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="https://github.com/nechemyaspitz/tab-switcher">Source Code</a>
+                <a href="privacy.html">Privacy</a>
+                <a href="setup.html">Setup</a>
+            </div>
+            <span class="footer-copy">© 2026</span>
+        </div>
+    </footer>
 </body>
 </html>

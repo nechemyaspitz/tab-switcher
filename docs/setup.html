@@ -3,8 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setup Tab Switcher</title>
+    <title>Setup — Tab Switcher</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #08080a;
+            --surface: #111113;
+            --border: #1e1e21;
+            --text: #fafafa;
+            --text-muted: #71717a;
+            --accent: #e4e4e7;
+            --success: #22c55e;
+            --success-muted: rgba(34, 197, 94, 0.15);
+            --warning: #eab308;
+            --warning-muted: rgba(234, 179, 8, 0.1);
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -12,105 +29,136 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-            color: #fff;
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
         }
         
         .container {
-            max-width: 700px;
+            max-width: 640px;
             margin: 0 auto;
-            padding: 60px 20px;
+            padding: 80px 24px;
         }
         
+        /* Header */
         header {
-            text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 64px;
         }
         
-        .success-badge {
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            margin-bottom: 40px;
+            transition: color 0.2s;
+        }
+        
+        .back-link:hover {
+            color: var(--text);
+        }
+        
+        .back-link svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .status-badge {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(16, 185, 129, 0.2);
-            color: #10b981;
-            padding: 10px 20px;
-            border-radius: 50px;
-            font-weight: 600;
+            background: var(--success-muted);
+            color: var(--success);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 500;
             margin-bottom: 24px;
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(34, 197, 94, 0.2);
         }
         
-        .success-badge svg {
-            width: 20px;
-            height: 20px;
+        .status-badge svg {
+            width: 16px;
+            height: 16px;
         }
         
         h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: clamp(2.5rem, 6vw, 3.5rem);
+            font-weight: 400;
+            letter-spacing: -0.02em;
             margin-bottom: 16px;
         }
         
         .subtitle {
-            font-size: 1.2rem;
-            color: #8892b0;
+            color: var(--text-muted);
+            font-size: 1.1rem;
         }
         
+        /* Steps */
         .steps {
-            margin: 40px 0;
+            margin: 48px 0;
         }
         
         .step {
-            display: flex;
+            display: grid;
+            grid-template-columns: 48px 1fr;
             gap: 20px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: border-color 0.2s;
+            padding: 24px 0;
+            border-bottom: 1px solid var(--border);
         }
         
-        .step:hover {
-            border-color: rgba(255,255,255,0.2);
+        .step:first-child {
+            border-top: 1px solid var(--border);
         }
         
-        .step.completed {
-            border-color: rgba(16, 185, 129, 0.4);
-            background: rgba(16, 185, 129, 0.05);
-        }
-        
-        .step-number {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+        .step-indicator {
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 700;
-            font-size: 1.1rem;
-            flex-shrink: 0;
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.85rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
         }
         
-        .step.completed .step-number {
-            background: #10b981;
-        }
-        
-        .step-content {
-            flex: 1;
+        .step.completed .step-indicator {
+            background: var(--success-muted);
+            border-color: rgba(34, 197, 94, 0.3);
+            color: var(--success);
         }
         
         .step-content h3 {
-            font-size: 1.2rem;
+            font-size: 1.125rem;
+            font-weight: 500;
             margin-bottom: 8px;
         }
         
+        .step.completed .step-content h3 {
+            color: var(--text-muted);
+        }
+        
         .step-content p {
-            color: #8892b0;
+            color: var(--text-muted);
+            font-size: 0.95rem;
             margin-bottom: 16px;
         }
         
@@ -118,121 +166,150 @@
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            padding: 14px 24px;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
+            padding: 12px 24px;
+            font-size: 0.875rem;
+            font-weight: 500;
             text-decoration: none;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #4361ee, #3a0ca3);
-            color: #fff;
+            background: var(--text);
+            color: var(--bg);
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent);
+            transform: translateY(-1px);
         }
         
         .btn svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
         }
         
+        /* Note */
         .note {
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.3);
+            background: var(--warning-muted);
+            border: 1px solid rgba(234, 179, 8, 0.2);
             border-radius: 12px;
             padding: 20px;
-            margin-top: 30px;
+            margin-top: 48px;
         }
         
-        .note h4 {
-            color: #fbbf24;
-            margin-bottom: 8px;
+        .note-header {
             display: flex;
             align-items: center;
-            gap: 8px;
-        }
-        
-        .note p {
-            color: #8892b0;
-            font-size: 0.95rem;
-        }
-        
-        .shortcut-hint {
-            text-align: center;
-            margin-top: 50px;
-            padding-top: 40px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .shortcut-hint h3 {
-            color: #a8dadc;
-            margin-bottom: 20px;
-        }
-        
-        .keys {
-            display: inline-flex;
-            align-items: center;
             gap: 10px;
-            font-size: 1.2rem;
-        }
-        
-        .key {
-            background: linear-gradient(145deg, #3a3a5c, #2a2a4c);
-            padding: 10px 16px;
-            border-radius: 8px;
-            box-shadow: 0 3px 0 #1a1a3c;
-            border: 1px solid rgba(255,255,255,0.1);
-            font-weight: 600;
-        }
-        
-        footer {
-            text-align: center;
-            margin-top: 60px;
-            color: #8892b0;
+            color: var(--warning);
+            font-weight: 500;
+            margin-bottom: 8px;
             font-size: 0.9rem;
         }
         
-        footer a {
-            color: #a8dadc;
-            text-decoration: none;
+        .note-header svg {
+            width: 18px;
+            height: 18px;
         }
         
-        footer a:hover {
-            text-decoration: underline;
+        .note p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        /* Keyboard hint */
+        .ready-section {
+            margin-top: 64px;
+            padding-top: 48px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+        
+        .ready-section h2 {
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: 1.5rem;
+            font-weight: 400;
+            margin-bottom: 24px;
+            color: var(--text-muted);
+        }
+        
+        .keyboard-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+        
+        .key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 48px;
+            height: 40px;
+            padding: 0 14px;
+            background: linear-gradient(180deg, #1a1a1d 0%, #0f0f10 100%);
+            border: 1px solid #2a2a2d;
+            border-radius: 6px;
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent);
+            box-shadow: 
+                0 1px 0 #2a2a2d,
+                0 4px 8px rgba(0,0,0,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .key-separator {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+        
+        .ready-hint {
+            margin-top: 16px;
+            color: var(--text-muted);
+            font-size: 0.875rem;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="success-badge">
+            <a href="index.html" class="back-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back
+            </a>
+            <div class="status-badge">
                 <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                Extension Installed!
+                Extension installed
             </div>
-            <h1>One More Step</h1>
-            <p class="subtitle">Download the companion app to enable Ctrl+Tab switching</p>
+            <h1>Complete setup</h1>
+            <p class="subtitle">One more step to enable Ctrl+Tab switching</p>
         </header>
         
         <div class="steps">
             <div class="step completed">
-                <div class="step-number">✓</div>
+                <div class="step-indicator">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                </div>
                 <div class="step-content">
-                    <h3>Install Browser Extension</h3>
-                    <p>The Tab Switcher extension is now installed in your browser.</p>
+                    <h3>Browser extension</h3>
+                    <p>Tab Switcher is now installed in your browser.</p>
                 </div>
             </div>
             
             <div class="step">
-                <div class="step-number">2</div>
+                <div class="step-indicator">2</div>
                 <div class="step-content">
-                    <h3>Download the macOS App</h3>
-                    <p>The companion app intercepts Ctrl+Tab and displays the visual tab switcher.</p>
-                    <a href="#" class="btn btn-primary" id="download-app">
+                    <h3>Download the macOS app</h3>
+                    <p>The companion app intercepts Ctrl+Tab at the system level and displays the visual switcher.</p>
+                    <a href="#" class="btn btn-primary">
                         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
                         Download for macOS
                     </a>
@@ -240,45 +317,39 @@
             </div>
             
             <div class="step">
-                <div class="step-number">3</div>
+                <div class="step-indicator">3</div>
                 <div class="step-content">
-                    <h3>Grant Accessibility Permission</h3>
-                    <p>When you first open the app, macOS will ask for Accessibility permission. This allows the app to detect Ctrl+Tab globally.</p>
+                    <h3>Grant accessibility permission</h3>
+                    <p>When prompted, allow Tab Switcher in System Settings → Privacy & Security → Accessibility.</p>
                 </div>
             </div>
             
             <div class="step">
-                <div class="step-number">4</div>
+                <div class="step-indicator">4</div>
                 <div class="step-content">
-                    <h3>Enable Your Browser</h3>
-                    <p>In the Tab Switcher app, enable your browser and you're all set!</p>
+                    <h3>Enable your browser</h3>
+                    <p>Open the Tab Switcher app and enable your browser in the setup window.</p>
                 </div>
             </div>
         </div>
         
         <div class="note">
-            <h4>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+            <div class="note-header">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
                 Why is a companion app needed?
-            </h4>
-            <p>Browser extensions cannot intercept Ctrl+Tab because it's a system-reserved shortcut. The native macOS app captures this shortcut and communicates with the extension to switch tabs.</p>
-        </div>
-        
-        <div class="shortcut-hint">
-            <h3>Once setup is complete, use:</h3>
-            <div class="keys">
-                <span class="key">⌃ Ctrl</span>
-                <span style="color: #8892b0;">+</span>
-                <span class="key">⇥ Tab</span>
             </div>
-            <p style="margin-top: 16px; color: #8892b0;">
-                Hold Ctrl, press Tab to cycle through tabs, release Ctrl to switch
-            </p>
+            <p>Browser extensions cannot intercept Ctrl+Tab—it's reserved by the system. The native app captures this shortcut globally and communicates with the extension.</p>
         </div>
         
-        <footer>
-            <p><a href="index.html">← Back to Home</a></p>
-        </footer>
+        <div class="ready-section">
+            <h2>Once setup is complete</h2>
+            <div class="keyboard-hint">
+                <span class="key">⌃ Ctrl</span>
+                <span class="key-separator">+</span>
+                <span class="key">Tab ⇥</span>
+            </div>
+            <p class="ready-hint">Hold Ctrl, press Tab to cycle, release to switch</p>
+        </div>
     </div>
 </body>
 </html>
