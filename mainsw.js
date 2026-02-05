@@ -40,7 +40,7 @@ var log = function(str) {
 }
 
 // Welcome/setup page URL (update this once website is live)
-var SETUP_PAGE_URL = "https://tabswitcher.app/setup";
+var SETUP_PAGE_URL = "https://nechemyaspitz.github.io/tab-switcher/setup.html";
 
 // Initialize on install/update
 chrome.runtime.onInstalled.addListener((details) => {
