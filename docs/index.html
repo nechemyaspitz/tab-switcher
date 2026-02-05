@@ -16,7 +16,6 @@
             --text: #fafafa;
             --text-muted: #71717a;
             --accent: #e4e4e7;
-            --glow: rgba(255, 255, 255, 0.03);
         }
         
         * {
@@ -35,28 +34,10 @@
             background: var(--bg);
             color: var(--text);
             line-height: 1.6;
-            overflow-x: hidden;
-        }
-        
-        /* Noise texture overlay */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-            opacity: 0.03;
-            pointer-events: none;
-            z-index: 1000;
         }
         
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-        }
-        
-        .container-wide {
-            max-width: 1400px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 0 24px;
         }
@@ -104,26 +85,14 @@
             color: var(--text);
         }
         
-        /* Hero - Split Layout */
+        /* Hero */
         .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            padding: 100px 0 60px;
-            position: relative;
-            overflow: hidden;
+            padding: 160px 0 120px;
         }
         
-        .hero-grid {
-            display: grid;
-            grid-template-columns: 1fr 1.1fr;
-            gap: 60px;
-            align-items: center;
-            width: 100%;
-        }
-        
-        .hero-content {
-            max-width: 560px;
+        .hero-text {
+            max-width: 640px;
+            margin-bottom: 64px;
         }
         
         .eyebrow {
@@ -133,25 +102,15 @@
             text-transform: uppercase;
             color: var(--text-muted);
             margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .eyebrow::before {
-            content: '';
-            width: 24px;
-            height: 1px;
-            background: var(--text-muted);
         }
         
         h1 {
             font-family: 'Instrument Serif', Georgia, serif;
-            font-size: clamp(3rem, 7vw, 5rem);
+            font-size: clamp(3rem, 8vw, 4.5rem);
             font-weight: 400;
-            line-height: 1;
+            line-height: 1.05;
             letter-spacing: -0.03em;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
         }
         
         h1 em {
@@ -160,65 +119,29 @@
         }
         
         .hero-description {
-            font-size: 1.15rem;
+            font-size: 1.125rem;
             color: var(--text-muted);
-            max-width: 420px;
+            max-width: 480px;
             line-height: 1.7;
-            margin-bottom: 40px;
+            margin-bottom: 32px;
         }
         
-        /* Keyboard visual */
-        .keyboard-hint {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 48px;
-            padding: 14px 20px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-        }
-        
-        .key {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 44px;
-            height: 36px;
-            padding: 0 12px;
-            background: linear-gradient(180deg, #1a1a1d 0%, #0f0f10 100%);
-            border: 1px solid #2a2a2d;
-            border-radius: 5px;
-            font-family: 'Geist Mono', monospace;
-            font-size: 0.75rem;
-            color: var(--accent);
-            box-shadow: 
-                0 1px 0 #2a2a2d,
-                0 3px 6px rgba(0,0,0,0.4),
-                inset 0 1px 0 rgba(255,255,255,0.05);
-        }
-        
-        .key-separator {
-            color: var(--text-muted);
-            font-size: 0.7rem;
-        }
-        
-        /* CTA Buttons */
         .cta-group {
             display: flex;
-            gap: 14px;
+            gap: 12px;
             flex-wrap: wrap;
+            align-items: center;
         }
         
         .btn {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            padding: 13px 24px;
+            gap: 8px;
+            padding: 12px 20px;
             font-size: 0.875rem;
             font-weight: 500;
             text-decoration: none;
-            border-radius: 8px;
+            border-radius: 6px;
             transition: all 0.2s ease;
             cursor: pointer;
             border: none;
@@ -231,7 +154,6 @@
         
         .btn-primary:hover {
             background: var(--accent);
-            transform: translateY(-1px);
         }
         
         .btn-secondary {
@@ -250,78 +172,54 @@
             height: 16px;
         }
         
-        /* Hero Image */
-        .hero-visual {
-            position: relative;
-            perspective: 1000px;
+        .keyboard-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 16px;
+            color: var(--text-muted);
+            font-size: 0.875rem;
         }
         
-        .hero-image-wrapper {
-            position: relative;
-            transform: rotateY(-8deg) rotateX(2deg);
-            transform-style: preserve-3d;
-            transition: transform 0.5s ease;
+        .key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent);
         }
         
-        .hero-image-wrapper:hover {
-            transform: rotateY(-4deg) rotateX(1deg);
+        /* Screenshot */
+        .hero-image {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
         }
         
-        .hero-image-wrapper::before {
-            content: '';
-            position: absolute;
-            inset: -20px;
-            background: radial-gradient(ellipse at center, rgba(255,255,255,0.06) 0%, transparent 70%);
-            border-radius: 24px;
-            z-index: -1;
-            filter: blur(40px);
-        }
-        
-        .hero-image-wrapper img {
+        .hero-image img {
             display: block;
             width: 100%;
             height: auto;
-            border-radius: 12px;
-            box-shadow: 
-                0 0 0 1px rgba(255,255,255,0.08),
-                0 20px 40px -15px rgba(0,0,0,0.6),
-                0 40px 80px -30px rgba(0,0,0,0.4);
-        }
-        
-        /* Floating glow orb behind image */
-        .hero-visual::after {
-            content: '';
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(100, 100, 255, 0.08) 0%, transparent 70%);
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: -2;
-            filter: blur(60px);
-            animation: pulse 4s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
-            50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
         }
 
-        /* Features - Editorial list */
+        /* Features */
         .features {
             padding: 120px 0;
             border-top: 1px solid var(--border);
         }
         
-        .features-header {
-            margin-bottom: 80px;
+        .section-header {
+            margin-bottom: 64px;
         }
         
-        .features-header h2 {
+        .section-header h2 {
             font-family: 'Instrument Serif', Georgia, serif;
-            font-size: clamp(2rem, 5vw, 3rem);
+            font-size: clamp(2rem, 5vw, 2.5rem);
             font-weight: 400;
             letter-spacing: -0.02em;
         }
@@ -333,9 +231,9 @@
         
         .feature-item {
             display: grid;
-            grid-template-columns: 80px 1fr;
-            gap: 40px;
-            padding: 40px 0;
+            grid-template-columns: 64px 1fr;
+            gap: 32px;
+            padding: 32px 0;
             border-bottom: 1px solid var(--border);
             align-items: baseline;
         }
@@ -351,20 +249,20 @@
         }
         
         .feature-content h3 {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             font-weight: 500;
-            margin-bottom: 12px;
-            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
         }
         
         .feature-content p {
             color: var(--text-muted);
-            font-size: 1rem;
-            max-width: 560px;
-            line-height: 1.7;
+            font-size: 0.9375rem;
+            max-width: 520px;
+            line-height: 1.6;
         }
         
-        /* Download section */
+        /* Download */
         .download {
             padding: 120px 0;
             text-align: center;
@@ -372,35 +270,34 @@
         
         .download h2 {
             font-family: 'Instrument Serif', Georgia, serif;
-            font-size: clamp(2rem, 5vw, 3rem);
+            font-size: clamp(2rem, 5vw, 2.5rem);
             font-weight: 400;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
         
         .download-subtitle {
             color: var(--text-muted);
-            margin-bottom: 48px;
-            font-size: 1.1rem;
+            margin-bottom: 40px;
+            font-size: 1rem;
         }
         
         .download-buttons {
             display: flex;
             justify-content: center;
-            gap: 16px;
+            gap: 12px;
             flex-wrap: wrap;
-            margin-bottom: 48px;
+            margin-bottom: 32px;
         }
         
         .system-req {
             font-family: 'Geist Mono', monospace;
             font-size: 0.75rem;
             color: var(--text-muted);
-            letter-spacing: 0.02em;
         }
         
         /* Footer */
         footer {
-            padding: 48px 0;
+            padding: 40px 0;
             border-top: 1px solid var(--border);
         }
         
@@ -409,12 +306,12 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 24px;
+            gap: 20px;
         }
         
         .footer-links {
             display: flex;
-            gap: 32px;
+            gap: 24px;
         }
         
         .footer-links a {
@@ -433,126 +330,29 @@
             color: var(--text-muted);
         }
         
-        /* Animations */
-        @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(24px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes fadeInRight {
-            from {
-                opacity: 0;
-                transform: translateX(40px) rotateY(-8deg) rotateX(2deg);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0) rotateY(-8deg) rotateX(2deg);
-            }
-        }
-        
-        .hero-content > * {
-            animation: fadeUp 0.8s ease forwards;
-            opacity: 0;
-        }
-        
-        .hero-content > *:nth-child(1) { animation-delay: 0.1s; }
-        .hero-content > *:nth-child(2) { animation-delay: 0.2s; }
-        .hero-content > *:nth-child(3) { animation-delay: 0.3s; }
-        .hero-content > *:nth-child(4) { animation-delay: 0.4s; }
-        .hero-content > *:nth-child(5) { animation-delay: 0.5s; }
-        
-        .hero-image-wrapper {
-            animation: fadeInRight 1s ease forwards;
-            animation-delay: 0.3s;
-            opacity: 0;
-        }
-        
         /* Responsive */
-        @media (max-width: 1024px) {
-            .hero-grid {
+        @media (max-width: 640px) {
+            .hero {
+                padding: 120px 0 80px;
+            }
+            
+            .feature-item {
                 grid-template-columns: 1fr;
-                gap: 60px;
+                gap: 8px;
             }
             
-            .hero-content {
-                max-width: 100%;
-                text-align: center;
-            }
-            
-            .hero-content .eyebrow {
-                justify-content: center;
-            }
-            
-            .hero-content .eyebrow::before {
+            .keyboard-hint {
                 display: none;
             }
             
-            .hero-description {
-                max-width: 100%;
-                margin-left: auto;
-                margin-right: auto;
-            }
-            
             .cta-group {
-                justify-content: center;
-            }
-            
-            .keyboard-hint {
-                margin-left: auto;
-                margin-right: auto;
-            }
-            
-            .hero-visual {
-                order: -1;
-            }
-            
-            .hero-image-wrapper {
-                transform: none;
-            }
-            
-            .hero-image-wrapper:hover {
-                transform: none;
-            }
-            
-            @keyframes fadeInRight {
-                from {
-                    opacity: 0;
-                    transform: translateY(20px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-        }
-        
-        @media (max-width: 640px) {
-            .feature-item {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-            
-            .hero {
-                padding-top: 100px;
-            }
-            
-            .keyboard-hint {
-                margin-top: 32px;
+                flex-direction: column;
+                align-items: flex-start;
             }
             
             footer .container {
                 flex-direction: column;
                 text-align: center;
-            }
-            
-            h1 {
-                font-size: clamp(2.5rem, 12vw, 3.5rem);
             }
         }
     </style>
@@ -569,40 +369,36 @@
     </nav>
     
     <section class="hero">
-        <div class="container-wide">
-            <div class="hero-grid">
-                <div class="hero-content">
-                    <p class="eyebrow">For macOS & Chromium browsers</p>
-                    <h1>Ctrl+Tab,<br><em>reimagined</em></h1>
-                    <p class="hero-description">
-                        Switch between browser tabs the way you switch between apps. 
-                        Visual previews, most-recently-used order, zero friction.
-                    </p>
-                    <div class="cta-group">
-                        <a href="#download" class="btn btn-primary">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                            Download
-                        </a>
-                        <a href="setup.html" class="btn btn-secondary">Setup Guide</a>
-                    </div>
-                    <div class="keyboard-hint">
+        <div class="container">
+            <div class="hero-text">
+                <p class="eyebrow">For macOS & Chromium browsers</p>
+                <h1>Ctrl+Tab, <em>reimagined</em></h1>
+                <p class="hero-description">
+                    Switch between browser tabs the way you switch between apps. 
+                    Visual previews, most-recently-used order, zero friction.
+                </p>
+                <div class="cta-group">
+                    <a href="#download" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Download
+                    </a>
+                    <a href="setup.html" class="btn btn-secondary">Setup Guide</a>
+                    <span class="keyboard-hint">
                         <span class="key">⌃ Ctrl</span>
-                        <span class="key-separator">+</span>
-                        <span class="key">Tab ⇥</span>
-                    </div>
+                        <span>+</span>
+                        <span class="key">Tab</span>
+                    </span>
                 </div>
-                <div class="hero-visual">
-                    <div class="hero-image-wrapper">
-                        <img src="screenshot.png" alt="Tab Switcher in action - visual tab previews in Chrome">
-                    </div>
-                </div>
+            </div>
+            <div class="hero-image">
+                <img src="screenshot.png" alt="Tab Switcher in action">
             </div>
         </div>
     </section>
     
     <section class="features">
         <div class="container">
-            <div class="features-header">
+            <div class="section-header">
                 <h2>Built different</h2>
             </div>
             <div class="feature-list">
