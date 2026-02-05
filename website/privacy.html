@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Tab Switcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            line-height: 1.8;
+        }
+        
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+        
+        .date {
+            color: #8892b0;
+            margin-bottom: 40px;
+        }
+        
+        h2 {
+            font-size: 1.4rem;
+            margin-top: 40px;
+            margin-bottom: 16px;
+            color: #a8dadc;
+        }
+        
+        p {
+            color: #ccd6f6;
+            margin-bottom: 16px;
+        }
+        
+        ul {
+            color: #ccd6f6;
+            margin-left: 24px;
+            margin-bottom: 16px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        a {
+            color: #a8dadc;
+        }
+        
+        footer {
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #8892b0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Policy</h1>
+        <p class="date">Last updated: February 5, 2026</p>
+        
+        <h2>Overview</h2>
+        <p>Tab Switcher is committed to protecting your privacy. This policy explains what data we collect and how we use it.</p>
+        
+        <h2>Data Collection</h2>
+        <p><strong>Tab Switcher does not collect, store, or transmit any personal data.</strong></p>
+        <p>Specifically, we do not collect:</p>
+        <ul>
+            <li>Browsing history</li>
+            <li>Tab contents or URLs</li>
+            <li>Personal information</li>
+            <li>Usage analytics</li>
+            <li>Any other user data</li>
+        </ul>
+        
+        <h2>Local Data</h2>
+        <p>Tab Switcher stores the following data locally on your device:</p>
+        <ul>
+            <li><strong>Tab thumbnails:</strong> Temporarily cached in memory to display in the tab switcher UI. These are never saved to disk or transmitted anywhere.</li>
+            <li><strong>Browser configuration:</strong> Your enabled browsers and settings are saved locally to <code>~/Library/Application Support/TabSwitcher/</code>.</li>
+        </ul>
+        <p>This data never leaves your device.</p>
+        
+        <h2>Permissions</h2>
+        <p>The extension requires certain permissions to function:</p>
+        <ul>
+            <li><strong>tabs:</strong> To access tab information (titles, favicons) for the switcher UI</li>
+            <li><strong>activeTab:</strong> To capture thumbnails of the currently active tab</li>
+            <li><strong>nativeMessaging:</strong> To communicate with the companion macOS app</li>
+            <li><strong>host_permissions (all_urls):</strong> Required to capture tab thumbnails across all websites</li>
+        </ul>
+        
+        <h2>Third-Party Services</h2>
+        <p>Tab Switcher does not use any third-party analytics, tracking, or advertising services.</p>
+        
+        <h2>Changes to This Policy</h2>
+        <p>We may update this privacy policy from time to time. Any changes will be posted on this page.</p>
+        
+        <h2>Contact</h2>
+        <p>If you have questions about this privacy policy, please open an issue on our <a href="https://github.com/yourusername/tab-switcher">GitHub repository</a>.</p>
+        
+        <footer>
+            <p><a href="index.html">← Back to Home</a></p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Build artifacts
+native-host/.build/
+dist/
+
+# IDE
+.idea/
+*.xcodeproj/
+*.xcworkspace/
+
+# Debug logs
+*.log

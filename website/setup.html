@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Tab Switcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .success-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .success-badge svg {
+            width: 20px;
+            height: 20px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #8892b0;
+        }
+        
+        .steps {
+            margin: 40px 0;
+        }
+        
+        .step {
+            display: flex;
+            gap: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: border-color 0.2s;
+        }
+        
+        .step:hover {
+            border-color: rgba(255,255,255,0.2);
+        }
+        
+        .step.completed {
+            border-color: rgba(16, 185, 129, 0.4);
+            background: rgba(16, 185, 129, 0.05);
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        
+        .step.completed .step-number {
+            background: #10b981;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-content h3 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+        
+        .step-content p {
+            color: #8892b0;
+            margin-bottom: 16px;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: #fff;
+        }
+        
+        .btn svg {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .note {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .note h4 {
+            color: #fbbf24;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .note p {
+            color: #8892b0;
+            font-size: 0.95rem;
+        }
+        
+        .shortcut-hint {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .shortcut-hint h3 {
+            color: #a8dadc;
+            margin-bottom: 20px;
+        }
+        
+        .keys {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .key {
+            background: linear-gradient(145deg, #3a3a5c, #2a2a4c);
+            padding: 10px 16px;
+            border-radius: 8px;
+            box-shadow: 0 3px 0 #1a1a3c;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-weight: 600;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            color: #8892b0;
+            font-size: 0.9rem;
+        }
+        
+        footer a {
+            color: #a8dadc;
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="success-badge">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                Extension Installed!
+            </div>
+            <h1>One More Step</h1>
+            <p class="subtitle">Download the companion app to enable Ctrl+Tab switching</p>
+        </header>
+        
+        <div class="steps">
+            <div class="step completed">
+                <div class="step-number">✓</div>
+                <div class="step-content">
+                    <h3>Install Browser Extension</h3>
+                    <p>The Tab Switcher extension is now installed in your browser.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Download the macOS App</h3>
+                    <p>The companion app intercepts Ctrl+Tab and displays the visual tab switcher.</p>
+                    <a href="#" class="btn btn-primary" id="download-app">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                        Download for macOS
+                    </a>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Grant Accessibility Permission</h3>
+                    <p>When you first open the app, macOS will ask for Accessibility permission. This allows the app to detect Ctrl+Tab globally.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>Enable Your Browser</h3>
+                    <p>In the Tab Switcher app, enable your browser and you're all set!</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="note">
+            <h4>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                Why is a companion app needed?
+            </h4>
+            <p>Browser extensions cannot intercept Ctrl+Tab because it's a system-reserved shortcut. The native macOS app captures this shortcut and communicates with the extension to switch tabs.</p>
+        </div>
+        
+        <div class="shortcut-hint">
+            <h3>Once setup is complete, use:</h3>
+            <div class="keys">
+                <span class="key">⌃ Ctrl</span>
+                <span style="color: #8892b0;">+</span>
+                <span class="key">⇥ Tab</span>
+            </div>
+            <p style="margin-top: 16px; color: #8892b0;">
+                Hold Ctrl, press Tab to cycle through tabs, release Ctrl to switch
+            </p>
+        </div>
+        
+        <footer>
+            <p><a href="index.html">← Back to Home</a></p>
+        </footer>
+    </div>
+</body>
+</html>
