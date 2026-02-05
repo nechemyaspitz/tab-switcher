@@ -285,22 +285,26 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                 Back
             </a>
-            <div class="status-badge">
-                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                Extension installed
+            <div class="status-badge" style="background: var(--warning-muted); color: var(--warning); border-color: rgba(234, 179, 8, 0.2);">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                Early Access — Manual Setup Required
             </div>
-            <h1>Complete setup</h1>
-            <p class="subtitle">One more step to enable Ctrl+Tab switching</p>
+            <h1>Setup Guide</h1>
+            <p class="subtitle">Chrome Web Store approval pending. Follow these steps for manual installation.</p>
         </header>
         
         <div class="steps">
-            <div class="step completed">
-                <div class="step-indicator">
-                    <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                </div>
+            <div class="step">
+                <div class="step-indicator">1</div>
                 <div class="step-content">
-                    <h3>Browser extension</h3>
-                    <p>Tab Switcher is now installed in your browser.</p>
+                    <h3>Install the browser extension</h3>
+                    <p>Download the extension, then load it manually in Chrome:</p>
+                    <ol style="color: var(--text-muted); font-size: 0.9rem; margin: 12px 0; padding-left: 20px;">
+                        <li>Download and unzip the <a href="https://github.com/nechemyaspitz/tab-switcher/archive/refs/heads/master.zip" style="color: var(--accent);">extension files</a></li>
+                        <li>Go to <code style="background: var(--surface); padding: 2px 6px; border-radius: 4px;">chrome://extensions</code></li>
+                        <li>Enable <strong>Developer mode</strong> (top right)</li>
+                        <li>Click <strong>Load unpacked</strong> and select the unzipped folder</li>
+                    </ol>
                 </div>
             </div>
             
@@ -327,8 +331,13 @@
             <div class="step">
                 <div class="step-indicator">4</div>
                 <div class="step-content">
-                    <h3>Enable your browser</h3>
-                    <p>Open the Tab Switcher app and enable your browser in the setup window.</p>
+                    <h3>Connect the extension</h3>
+                    <p>Open the Tab Switcher app, click <strong>Enable</strong> for Chrome, then enter your Extension ID:</p>
+                    <ol style="color: var(--text-muted); font-size: 0.9rem; margin: 12px 0; padding-left: 20px;">
+                        <li>Go to <code style="background: var(--surface); padding: 2px 6px; border-radius: 4px;">chrome://extensions</code></li>
+                        <li>Find Tab Switcher and copy the <strong>ID</strong> (32-character string)</li>
+                        <li>Paste it into the Tab Switcher app and click <strong>Save</strong></li>
+                    </ol>
                 </div>
             </div>
         </div>

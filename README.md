@@ -4,6 +4,8 @@
 
 [Website](https://tabswitcher.app) · [Download](https://tabswitcher.app/Tab%20Switcher.dmg) · [Setup Guide](https://tabswitcher.app/setup)
 
+> **Note:** Tab Switcher is currently pending Chrome Web Store approval. For now, manual installation is required. Once approved, you'll be able to install directly from the Chrome Web Store without needing to enter an Extension ID.
+
 ## Features
 
 - **Visual tab previews** — See thumbnails, favicons, and titles as you cycle through tabs
@@ -21,16 +23,13 @@ Works exactly like macOS app switching (Cmd+Tab), but for your browser tabs.
 
 Tab Switcher requires two components: a browser extension and a native macOS app.
 
-### 1. Install the Extension
+### 1. Install the Extension (Manual — Chrome Web Store coming soon)
 
-**From Chrome Web Store:**
-- Visit the Chrome Web Store and search for "Tab Switcher"
-
-**Manual installation:**
 1. Download or clone this repository
 2. Open Chrome and go to `chrome://extensions`
-3. Enable "Developer mode" (toggle in top right)
-4. Click "Load unpacked" and select this folder
+3. Enable **Developer mode** (toggle in top right)
+4. Click **Load unpacked** and select this folder
+5. Note the **Extension ID** shown (you'll need this later)
 
 ### 2. Install the Native App
 
@@ -39,9 +38,8 @@ Download the macOS app from [tabswitcher.app](https://tabswitcher.app/Tab%20Swit
 1. Open the DMG and drag Tab Switcher to Applications
 2. Open Tab Switcher from Applications
 3. Grant Accessibility permission when prompted
-4. Click "Enable" for your browser and enter the Extension ID
-
-To get the Extension ID: go to `chrome://extensions`, enable Developer mode, and copy the ID for Tab Switcher.
+4. Click **Enable** for your browser
+5. Enter the **Extension ID** from step 1.5 and click **Save**
 
 ### 3. Grant Accessibility Permissions
 
