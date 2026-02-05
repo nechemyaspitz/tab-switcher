@@ -113,10 +113,12 @@ var processCommand = function(command) {
 
 chrome.commands.onCommand.addListener(processCommand);
 
-chrome.action.onClicked.addListener(function(tab) {
-	log('Click recd');
-	processCommand('alt_switch_fast');
-
+// Handle messages from popup
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+	if (request.action === "get_connection_status") {
+		sendResponse({ connected: nativeHostConnected && nativePort !== null });
+		return true;
+	}
 });
 
 chrome.runtime.onStartup.addListener(function () {

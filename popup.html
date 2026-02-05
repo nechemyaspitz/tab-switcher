@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 280px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0b;
+      color: #fafafa;
+      padding: 20px;
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #1e1e21;
+    }
+    
+    .header img {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+    }
+    
+    .header h1 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+    
+    .status.connected {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+    
+    .status.disconnected {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    .status.connected .status-dot {
+      background: #22c55e;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    }
+    
+    .status.disconnected .status-dot {
+      background: #ef4444;
+    }
+    
+    .status-text {
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    
+    .status.connected .status-text {
+      color: #22c55e;
+    }
+    
+    .status.disconnected .status-text {
+      color: #ef4444;
+    }
+    
+    .shortcut {
+      background: #111113;
+      border: 1px solid #1e1e21;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    
+    .shortcut-label {
+      font-size: 11px;
+      color: #71717a;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .keys {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    
+    .key {
+      background: linear-gradient(180deg, #1a1a1d 0%, #0f0f10 100%);
+      border: 1px solid #2a2a2d;
+      border-radius: 5px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #e4e4e7;
+      box-shadow: 0 1px 0 #2a2a2d, 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .key-plus {
+      color: #71717a;
+      font-size: 10px;
+    }
+    
+    .help-link {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      font-size: 12px;
+      color: #71717a;
+      text-decoration: none;
+    }
+    
+    .help-link:hover {
+      color: #fafafa;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="icon48.png" alt="Tab Switcher">
+    <h1>Tab Switcher</h1>
+  </div>
+  
+  <div class="status" id="status">
+    <div class="status-dot"></div>
+    <div class="status-text" id="status-text">Checking...</div>
+  </div>
+  
+  <div class="shortcut">
+    <div class="shortcut-label">Keyboard shortcut</div>
+    <div class="keys">
+      <span class="key">⌃ Ctrl</span>
+      <span class="key-plus">+</span>
+      <span class="key">Tab</span>
+    </div>
+  </div>
+  
+  <a href="https://tabswitcher.app/setup" target="_blank" class="help-link">Setup help →</a>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -236,6 +236,45 @@
             height: 18px;
         }
         
+        /* Screenshot showcase */
+        .showcase {
+            padding: 80px 0 120px;
+            position: relative;
+        }
+        
+        .showcase-wrapper {
+            position: relative;
+            max-width: 1000px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 
+                0 0 0 1px var(--border),
+                0 25px 50px -12px rgba(0,0,0,0.5),
+                0 0 80px rgba(255,255,255,0.02);
+        }
+        
+        .showcase-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent 0%, transparent 90%, var(--bg) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .showcase-wrapper img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        
+        .showcase-wrapper {
+            animation: fadeUp 0.8s ease forwards;
+            animation-delay: 0.6s;
+            opacity: 0;
+        }
+        
         /* Features - Editorial list */
         .features {
             padding: 120px 0;
@@ -437,6 +476,14 @@
                     <span class="key-separator">+</span>
                     <span class="key">Tab ⇥</span>
                 </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="showcase">
+        <div class="container">
+            <div class="showcase-wrapper">
+                <img src="screenshot.png" alt="Tab Switcher in action - visual tab previews in Chrome">
             </div>
         </div>
     </section>

@@ -49,6 +49,7 @@
       "16": "icon16.png",
       "32": "icon32.png",
       "48": "icon48.png"
-    }
+    },
+    "default_popup": "popup.html"
   }
 }
