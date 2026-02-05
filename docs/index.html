@@ -50,7 +50,13 @@
         }
         
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+        
+        .container-wide {
+            max-width: 1400px;
             margin: 0 auto;
             padding: 0 24px;
         }
@@ -98,18 +104,26 @@
             color: var(--text);
         }
         
-        /* Hero */
+        /* Hero - Split Layout */
         .hero {
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 120px 0 80px;
+            align-items: center;
+            padding: 100px 0 60px;
             position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.1fr;
+            gap: 60px;
+            align-items: center;
+            width: 100%;
         }
         
         .hero-content {
-            max-width: 720px;
+            max-width: 560px;
         }
         
         .eyebrow {
@@ -133,11 +147,11 @@
         
         h1 {
             font-family: 'Instrument Serif', Georgia, serif;
-            font-size: clamp(3.5rem, 10vw, 6rem);
+            font-size: clamp(3rem, 7vw, 5rem);
             font-weight: 400;
             line-height: 1;
             letter-spacing: -0.03em;
-            margin-bottom: 32px;
+            margin-bottom: 28px;
         }
         
         h1 em {
@@ -146,11 +160,11 @@
         }
         
         .hero-description {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             color: var(--text-muted);
-            max-width: 480px;
+            max-width: 420px;
             line-height: 1.7;
-            margin-bottom: 48px;
+            margin-bottom: 40px;
         }
         
         /* Keyboard visual */
@@ -158,41 +172,41 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            margin-top: 64px;
-            padding: 16px 24px;
+            margin-top: 48px;
+            padding: 14px 20px;
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 10px;
         }
         
         .key {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 48px;
-            height: 40px;
-            padding: 0 14px;
+            min-width: 44px;
+            height: 36px;
+            padding: 0 12px;
             background: linear-gradient(180deg, #1a1a1d 0%, #0f0f10 100%);
             border: 1px solid #2a2a2d;
-            border-radius: 6px;
+            border-radius: 5px;
             font-family: 'Geist Mono', monospace;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--accent);
             box-shadow: 
                 0 1px 0 #2a2a2d,
-                0 4px 8px rgba(0,0,0,0.4),
+                0 3px 6px rgba(0,0,0,0.4),
                 inset 0 1px 0 rgba(255,255,255,0.05);
         }
         
         .key-separator {
             color: var(--text-muted);
-            font-size: 0.75rem;
+            font-size: 0.7rem;
         }
         
         /* CTA Buttons */
         .cta-group {
             display: flex;
-            gap: 16px;
+            gap: 14px;
             flex-wrap: wrap;
         }
         
@@ -200,8 +214,8 @@
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            padding: 14px 28px;
-            font-size: 0.9rem;
+            padding: 13px 24px;
+            font-size: 0.875rem;
             font-weight: 500;
             text-decoration: none;
             border-radius: 8px;
@@ -232,49 +246,69 @@
         }
         
         .btn svg {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
         }
         
-        /* Screenshot showcase */
-        .showcase {
-            padding: 80px 0 120px;
+        /* Hero Image */
+        .hero-visual {
             position: relative;
+            perspective: 1000px;
         }
         
-        .showcase-wrapper {
+        .hero-image-wrapper {
             position: relative;
-            max-width: 1000px;
-            margin: 0 auto;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 
-                0 0 0 1px var(--border),
-                0 25px 50px -12px rgba(0,0,0,0.5),
-                0 0 80px rgba(255,255,255,0.02);
+            transform: rotateY(-8deg) rotateX(2deg);
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
         }
         
-        .showcase-wrapper::before {
+        .hero-image-wrapper:hover {
+            transform: rotateY(-4deg) rotateX(1deg);
+        }
+        
+        .hero-image-wrapper::before {
             content: '';
             position: absolute;
-            inset: 0;
-            background: linear-gradient(to bottom, transparent 0%, transparent 90%, var(--bg) 100%);
-            pointer-events: none;
-            z-index: 1;
+            inset: -20px;
+            background: radial-gradient(ellipse at center, rgba(255,255,255,0.06) 0%, transparent 70%);
+            border-radius: 24px;
+            z-index: -1;
+            filter: blur(40px);
         }
         
-        .showcase-wrapper img {
+        .hero-image-wrapper img {
             display: block;
             width: 100%;
             height: auto;
+            border-radius: 12px;
+            box-shadow: 
+                0 0 0 1px rgba(255,255,255,0.08),
+                0 20px 40px -15px rgba(0,0,0,0.6),
+                0 40px 80px -30px rgba(0,0,0,0.4);
         }
         
-        .showcase-wrapper {
-            animation: fadeUp 0.8s ease forwards;
-            animation-delay: 0.6s;
-            opacity: 0;
+        /* Floating glow orb behind image */
+        .hero-visual::after {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(100, 100, 255, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: -2;
+            filter: blur(60px);
+            animation: pulse 4s ease-in-out infinite;
         }
         
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+        }
+
         /* Features - Editorial list */
         .features {
             padding: 120px 0;
@@ -411,6 +445,17 @@
             }
         }
         
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(40px) rotateY(-8deg) rotateX(2deg);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0) rotateY(-8deg) rotateX(2deg);
+            }
+        }
+        
         .hero-content > * {
             animation: fadeUp 0.8s ease forwards;
             opacity: 0;
@@ -422,7 +467,71 @@
         .hero-content > *:nth-child(4) { animation-delay: 0.4s; }
         .hero-content > *:nth-child(5) { animation-delay: 0.5s; }
         
+        .hero-image-wrapper {
+            animation: fadeInRight 1s ease forwards;
+            animation-delay: 0.3s;
+            opacity: 0;
+        }
+        
         /* Responsive */
+        @media (max-width: 1024px) {
+            .hero-grid {
+                grid-template-columns: 1fr;
+                gap: 60px;
+            }
+            
+            .hero-content {
+                max-width: 100%;
+                text-align: center;
+            }
+            
+            .hero-content .eyebrow {
+                justify-content: center;
+            }
+            
+            .hero-content .eyebrow::before {
+                display: none;
+            }
+            
+            .hero-description {
+                max-width: 100%;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            .cta-group {
+                justify-content: center;
+            }
+            
+            .keyboard-hint {
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            .hero-visual {
+                order: -1;
+            }
+            
+            .hero-image-wrapper {
+                transform: none;
+            }
+            
+            .hero-image-wrapper:hover {
+                transform: none;
+            }
+            
+            @keyframes fadeInRight {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        }
+        
         @media (max-width: 640px) {
             .feature-item {
                 grid-template-columns: 1fr;
@@ -434,12 +543,16 @@
             }
             
             .keyboard-hint {
-                margin-top: 40px;
+                margin-top: 32px;
             }
             
             footer .container {
                 flex-direction: column;
                 text-align: center;
+            }
+            
+            h1 {
+                font-size: clamp(2.5rem, 12vw, 3.5rem);
             }
         }
     </style>
@@ -456,34 +569,33 @@
     </nav>
     
     <section class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <p class="eyebrow">For macOS & Chromium browsers</p>
-                <h1>Ctrl+Tab,<br><em>reimagined</em></h1>
-                <p class="hero-description">
-                    Switch between browser tabs the way you switch between apps. 
-                    Visual previews, most-recently-used order, zero friction.
-                </p>
-                <div class="cta-group">
-                    <a href="#download" class="btn btn-primary">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Download
-                    </a>
-                    <a href="setup.html" class="btn btn-secondary">Setup Guide</a>
+        <div class="container-wide">
+            <div class="hero-grid">
+                <div class="hero-content">
+                    <p class="eyebrow">For macOS & Chromium browsers</p>
+                    <h1>Ctrl+Tab,<br><em>reimagined</em></h1>
+                    <p class="hero-description">
+                        Switch between browser tabs the way you switch between apps. 
+                        Visual previews, most-recently-used order, zero friction.
+                    </p>
+                    <div class="cta-group">
+                        <a href="#download" class="btn btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                        <a href="setup.html" class="btn btn-secondary">Setup Guide</a>
+                    </div>
+                    <div class="keyboard-hint">
+                        <span class="key">⌃ Ctrl</span>
+                        <span class="key-separator">+</span>
+                        <span class="key">Tab ⇥</span>
+                    </div>
                 </div>
-                <div class="keyboard-hint">
-                    <span class="key">⌃ Ctrl</span>
-                    <span class="key-separator">+</span>
-                    <span class="key">Tab ⇥</span>
+                <div class="hero-visual">
+                    <div class="hero-image-wrapper">
+                        <img src="screenshot.png" alt="Tab Switcher in action - visual tab previews in Chrome">
+                    </div>
                 </div>
-            </div>
-        </div>
-    </section>
-    
-    <section class="showcase">
-        <div class="container">
-            <div class="showcase-wrapper">
-                <img src="screenshot.png" alt="Tab Switcher in action - visual tab previews in Chrome">
             </div>
         </div>
     </section>
