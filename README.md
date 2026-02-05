@@ -2,7 +2,7 @@
 
 **Ctrl+Tab, reimagined.** Switch between browser tabs the way you switch between apps — with visual previews and most-recently-used ordering.
 
-[Website](https://tabswitcher.app) · [Chrome Web Store](#) · [Setup Guide](https://tabswitcher.app/setup)
+[Website](https://tabswitcher.app) · [Download](https://tabswitcher.app/Tab%20Switcher.dmg) · [Setup Guide](https://tabswitcher.app/setup)
 
 ## Features
 
@@ -23,8 +23,8 @@ Tab Switcher requires two components: a browser extension and a native macOS app
 
 ### 1. Install the Extension
 
-**From Chrome Web Store (recommended):**
-- Visit the [Chrome Web Store](#) and click "Add to Chrome"
+**From Chrome Web Store:**
+- Visit the Chrome Web Store and search for "Tab Switcher"
 
 **Manual installation:**
 1. Download or clone this repository
@@ -34,21 +34,21 @@ Tab Switcher requires two components: a browser extension and a native macOS app
 
 ### 2. Install the Native App
 
-The native macOS app is required to intercept Ctrl+Tab, which browsers don't allow extensions to override.
+Download the macOS app from [tabswitcher.app](https://tabswitcher.app/Tab%20Switcher.dmg).
 
-```bash
-cd native-host
-./install.sh
-```
+1. Open the DMG and drag Tab Switcher to Applications
+2. Open Tab Switcher from Applications
+3. Grant Accessibility permission when prompted
+4. Click "Enable" for your browser and enter the Extension ID
+
+To get the Extension ID: go to `chrome://extensions`, enable Developer mode, and copy the ID for Tab Switcher.
 
 ### 3. Grant Accessibility Permissions
 
-The app needs Accessibility permissions to detect keyboard shortcuts:
+If not prompted automatically:
 
 1. Open **System Settings → Privacy & Security → Accessibility**
-2. Click the **+** button
-3. Navigate to **Applications** and add **Tab Switcher.app**
-4. Enable the toggle next to Tab Switcher
+2. Enable the toggle next to Tab Switcher
 
 ## Keyboard Shortcuts
 
@@ -57,8 +57,6 @@ The app needs Accessibility permissions to detect keyboard shortcuts:
 | **Ctrl+Tab** | Open switcher, cycle forward |
 | **Ctrl+Shift+Tab** | Cycle backward |
 | **Alt+W** | Quick switch to last tab (no UI) |
-| **Alt+S** | Cycle backward |
-| **Alt+Shift+S** | Cycle forward |
 
 ## Requirements
 
@@ -70,17 +68,29 @@ The app needs Accessibility permissions to detect keyboard shortcuts:
 
 Tab Switcher operates entirely locally. No data is collected, stored, or transmitted. See our [Privacy Policy](https://tabswitcher.app/privacy).
 
+## Building from Source
+
+### Extension
+The extension files are in the root directory. Load unpacked in Chrome.
+
+### Native App
+```bash
+cd native-host
+swift build -c release
+```
+
+The app bundle is at `dist/Tab Switcher.app`.
+
 ## Troubleshooting
 
 **Extension shows "Not connected":**
 - Make sure the Tab Switcher app is running
 - Check that you've granted Accessibility permissions
-- Try quitting and restarting the app
+- Verify the Extension ID was entered correctly
 
 **Ctrl+Tab doesn't work:**
 - Verify Accessibility permissions are enabled
 - Make sure the browser window is focused
-- Check if another app is intercepting the shortcut
 
 For more help, visit the [Setup Guide](https://tabswitcher.app/setup).
 
