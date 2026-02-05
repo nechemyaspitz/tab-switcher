@@ -114,10 +114,61 @@ var processCommand = function(command) {
 chrome.commands.onCommand.addListener(processCommand);
 
 // Handle messages from popup
+var pendingPingCallback = null;
+var pingTimeout = null;
+
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	if (request.action === "get_connection_status") {
 		sendResponse({ connected: nativeHostConnected && nativePort !== null });
 		return true;
+	}
+	
+	if (request.action === "ping_native_host") {
+		// Clear any previous pending ping
+		if (pingTimeout) {
+			clearTimeout(pingTimeout);
+			pingTimeout = null;
+		}
+		if (pendingPingCallback) {
+			pendingPingCallback = null;
+		}
+		
+		// If no port or not connected, try to connect first
+		if (!nativePort) {
+			connectNativeHost();
+		}
+		
+		if (!nativePort) {
+			sendResponse({ connected: false });
+			return true;
+		}
+		
+		// Set up callback for pong response
+		pendingPingCallback = function(success) {
+			sendResponse({ connected: success });
+		};
+		
+		// Set timeout for ping response
+		pingTimeout = setTimeout(function() {
+			if (pendingPingCallback) {
+				pendingPingCallback(false);
+				pendingPingCallback = null;
+			}
+		}, 2000);
+		
+		// Send ping
+		try {
+			sendToNativeHost({ action: "ping" });
+		} catch (e) {
+			log("Ping failed: " + e.message);
+			if (pendingPingCallback) {
+				pendingPingCallback(false);
+				pendingPingCallback = null;
+			}
+			clearTimeout(pingTimeout);
+		}
+		
+		return true; // Keep channel open for async response
 	}
 });
 
@@ -455,6 +506,12 @@ var connectNativeHost = function() {
 			} else if (message.action === "pong") {
 				// Ping response - connection is alive
 				log("Received pong - connection alive");
+				if (pendingPingCallback) {
+					clearTimeout(pingTimeout);
+					pendingPingCallback(true);
+					pendingPingCallback = null;
+					pingTimeout = null;
+				}
 			} else if (message.action === "cycle_next") {
 				handleNativeCycle(1, message.show_ui, message.current_window_only);
 			} else if (message.action === "cycle_prev") {

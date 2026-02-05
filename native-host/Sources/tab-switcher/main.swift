@@ -2,6 +2,7 @@ import Foundation
 import AppKit
 import SwiftUI
 import Carbon.HIToolbox
+import ApplicationServices
 
 // MARK: - Browser Configuration
 
@@ -129,12 +130,8 @@ class BrowserConfigManager: ObservableObject {
         
         browsers = loadedBrowsers
         
-        // Check if any browser is enabled - if not, show setup
-        if !browsers.contains(where: { $0.isEnabled }) {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.showingSetup = true
-            }
-        }
+        // NOTE: Don't automatically show setup here - it's handled by AppDelegate
+        // based on whether we're launched directly or via native messaging
     }
     
     func saveConfig() {
@@ -167,7 +164,16 @@ class BrowserConfigManager: ObservableObject {
     }
     
     func updateManifests() {
-        let nativeHostPath = "/Applications/Tab Switcher.app/Contents/MacOS/tab-switcher"
+        // Use the actual path of the running app binary, not hardcoded path
+        let nativeHostPath: String
+        if let bundlePath = Bundle.main.executablePath {
+            nativeHostPath = bundlePath
+            debugLog("Using actual binary path for manifest: \(bundlePath)")
+        } else {
+            // Fallback to expected installation path
+            nativeHostPath = "/Applications/Tab Switcher.app/Contents/MacOS/tab-switcher"
+            debugLog("Using fallback binary path for manifest: \(nativeHostPath)")
+        }
         
         for browser in browsers {
             let manifestDir = browser.fullNativeMessagingPath
@@ -782,34 +788,55 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var launchedDirectly = false
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        debugLog("App delegate launched")
+        // Setup application menu (for Cmd+Q support)
+        if launchedDirectly {
+            setupMainMenu()
+        }
+        debugLog("App delegate launched, launchedDirectly=\(launchedDirectly)")
         
-        // Create the floating window
+        // Create the floating window for tab switching UI
         window = TabSwitcherWindow()
         debugLog("Window created")
         
-        // Observe setup window state - show/hide dock icon accordingly
-        setupCancellable = BrowserConfigManager.shared.$showingSetup.sink { [weak self] showing in
-            DispatchQueue.main.async {
-                if showing {
-                    // Show in dock when config UI is visible
-                    NSApp.setActivationPolicy(.regular)
-                    self?.showSetupWindow()
-                } else {
-                    self?.setupWindow?.close()
-                    self?.setupWindow = nil
-                    // Hide from dock when config UI is closed
-                    NSApp.setActivationPolicy(.accessory)
-                }
-            }
+        // Only show setup UI when launched directly (from Finder/Dock)
+        // Native messaging launches should NEVER show UI or dock icon
+        if launchedDirectly {
+            debugLog("Direct launch - showing setup window")
+            // Always set showingSetup to true for direct launches so the window stays open
+            allowConfigUI = true
+            BrowserConfigManager.shared.showingSetup = true
+            showSetupWindow()
+            NSApp.activate(ignoringOtherApps: true)
+        } else {
+            debugLog("Running as accessory (native messaging mode)")
         }
         
-        // If launched directly (not via native messaging), show setup
-        if launchedDirectly {
-            DispatchQueue.main.async {
-                BrowserConfigManager.shared.showingSetup = true
+        // Observe setup window state - but ONLY for direct launches
+        setupCancellable = BrowserConfigManager.shared.$showingSetup
+            .dropFirst() // Skip initial value to prevent immediate close
+            .sink { [weak self] showing in
+                guard let self = self else { return }
+                
+                // CRITICAL: Never process for native messaging instances unless user requested it
+                if !self.launchedDirectly && !allowConfigUI {
+                    return
+                }
+                
+                DispatchQueue.main.async {
+                    if showing {
+                        NSApp.setActivationPolicy(.regular)
+                        self.showSetupWindow()
+                    } else {
+                        self.setupWindow?.close()
+                        self.setupWindow = nil
+                        if !self.launchedDirectly {
+                            // Return to background mode if this was only a temporary UI
+                            NSApp.setActivationPolicy(.accessory)
+                            allowConfigUI = false
+                        }
+                    }
+                }
             }
-        }
         
         // Observe state changes to show/hide switcher window
         cancellable = TabSwitcherState.shared.$isVisible.sink { [weak self] isVisible in
@@ -891,8 +918,42 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             setupWindow?.delegate = self
         }
         
+        // Ensure we can receive focus/menus even if we were running as a background app
+        NSApp.setActivationPolicy(.regular)
+        if NSApp.mainMenu == nil {
+            setupMainMenu()
+        }
         setupWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+    }
+    
+    func setupMainMenu() {
+        let mainMenu = NSMenu()
+        
+        // App menu
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "About Tab Switcher", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(NSMenuItem.separator())
+        appMenu.addItem(withTitle: "Hide Tab Switcher", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        let hideOthersItem = appMenu.addItem(withTitle: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
+        hideOthersItem.keyEquivalentModifierMask = [.command, .option]
+        appMenu.addItem(withTitle: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
+        appMenu.addItem(NSMenuItem.separator())
+        appMenu.addItem(withTitle: "Quit Tab Switcher", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+        
+        // Window menu
+        let windowMenuItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "Window")
+        windowMenu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windowMenuItem.submenu = windowMenu
+        mainMenu.addItem(windowMenuItem)
+        
+        NSApp.mainMenu = mainMenu
     }
 }
 
@@ -908,9 +969,15 @@ extension AppDelegate {
     // Called when user clicks dock icon while app is running
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !flag {
+            allowConfigUI = true
             BrowserConfigManager.shared.showingSetup = true
         }
         return true
+    }
+    
+    func applicationWillTerminate(_ notification: Notification) {
+        debugLog("Application will terminate - cleaning up event tap lock")
+        cleanupEventTapLock()
     }
 }
 
@@ -1154,6 +1221,7 @@ var ownerBrowserBundleId: String? = nil  // The browser that launched this nativ
 var ownerBrowserProcessId: pid_t? = nil  // The PID of the specific browser process that launched us
 var myProcessId: pid_t = getpid()  // This native host's PID for identification
 var isEventTapLeader = false  // Whether this instance owns the event tap
+var allowConfigUI = false  // Allow showing config UI even if not direct launch
 
 // Detect which browser launched this native host by checking parent process
 // Returns (bundleId, processId) tuple
@@ -1228,12 +1296,28 @@ func tryBecomeEventTapLeader() -> Bool {
         // Read existing PID
         if let contents = try? String(contentsOf: eventTapLockFile, encoding: .utf8),
            let existingPid = Int32(contents.trimmingCharacters(in: .whitespacesAndNewlines)) {
-            // Check if that process is still running
+            // Check if that process is still running AND is actually Tab Switcher
             if kill(existingPid, 0) == 0 {
-                // Process is still running - we're not the leader
-                debugLog("Another native host (PID \(existingPid)) owns the event tap, we (PID \(myPid)) will listen only")
-                return false
+                // Process exists, but verify it's actually Tab Switcher
+                if let app = NSRunningApplication(processIdentifier: existingPid),
+                   app.bundleIdentifier == Bundle.main.bundleIdentifier {
+                    // It's actually our app - we're not the leader
+                    debugLog("Another Tab Switcher instance (PID \(existingPid)) owns the event tap, we (PID \(myPid)) will listen only")
+                    return false
+                } else {
+                    // PID exists but it's not Tab Switcher - stale lock file
+                    debugLog("Lock file has PID \(existingPid) but it's not Tab Switcher - removing stale lock")
+                    try? FileManager.default.removeItem(at: eventTapLockFile)
+                }
+            } else {
+                // Process doesn't exist - stale lock file
+                debugLog("Lock file has dead PID \(existingPid) - removing stale lock")
+                try? FileManager.default.removeItem(at: eventTapLockFile)
             }
+        } else {
+            // Couldn't read PID from lock file - remove it
+            debugLog("Lock file exists but couldn't read PID - removing")
+            try? FileManager.default.removeItem(at: eventTapLockFile)
         }
     }
     
@@ -1248,17 +1332,29 @@ func tryBecomeEventTapLeader() -> Bool {
     }
 }
 
-// Clean up lock file on exit
+// Clean up lock file on exit and notify listeners to take over
 func cleanupEventTapLock() {
     if isEventTapLeader {
         try? FileManager.default.removeItem(at: eventTapLockFile)
         debugLog("Cleaned up event tap lock file")
+        
+        // Notify other instances that the leader has resigned
+        // They should try to become the new leader
+        DistributedNotificationCenter.default().postNotificationName(
+            NSNotification.Name(leaderResignedNotificationName),
+            object: nil,
+            userInfo: nil,
+            deliverImmediately: true
+        )
+        debugLog("Posted leader-resigned notification")
     }
 }
 
 // Distributed notification names for IPC between native hosts
 let ctrlTabNotificationName = "com.tabswitcher.ctrlTab"
 let ctrlReleaseNotificationName = "com.tabswitcher.ctrlRelease"
+let leaderResignedNotificationName = "com.tabswitcher.leaderResigned"
+let showConfigNotificationName = "com.tabswitcher.showConfig"
 
 // Setup listener for distributed notifications (for non-leader hosts)
 func setupNotificationListener() {
@@ -1319,17 +1415,86 @@ func setupNotificationListener() {
         sendMessage(["action": "request_show_ui", "current_window_only": !combineWindows])
     }
     
+    // Listen for leader resignation - try to become the new leader
+    center.addObserver(forName: NSNotification.Name(leaderResignedNotificationName), object: nil, queue: .main) { _ in
+        debugLog("Received leader-resigned notification")
+        
+        // If we're not already the leader, try to become one
+        if !isEventTapLeader {
+            // Small delay to let the old leader fully exit
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if tryBecomeEventTapLeader() {
+                    isEventTapLeader = true
+                    if setupEventTap() {
+                        debugLog("Successfully became new event tap leader after resignation")
+                    } else {
+                        debugLog("Failed to setup event tap after becoming leader")
+                    }
+                }
+            }
+        }
+    }
+    
+    // Listen for show-config request (from directly-launched app trying to show UI)
+    center.addObserver(forName: NSNotification.Name(showConfigNotificationName), object: nil, queue: .main) { _ in
+        debugLog("Received show-config notification")
+        // Show the config window if we have one
+        DispatchQueue.main.async {
+            allowConfigUI = true
+            BrowserConfigManager.shared.showingSetup = true
+        }
+    }
+    
     debugLog("Notification listener setup complete (PID \(myProcessId), browser=\(ownerBrowserBundleId ?? "unknown"))")
+    
+    // Periodic check for dead leader (backup in case leader crashes without notification)
+    // Only do this for non-leaders that were launched via native messaging
+    if !isEventTapLeader {
+        Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+            // Check if the current leader is still alive
+            if FileManager.default.fileExists(atPath: eventTapLockFile.path) {
+                if let contents = try? String(contentsOf: eventTapLockFile, encoding: .utf8),
+                   let leaderPid = Int32(contents.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                    // Check if leader is still running
+                    if kill(leaderPid, 0) != 0 {
+                        debugLog("Detected dead leader (PID \(leaderPid)), attempting to take over")
+                        if tryBecomeEventTapLeader() {
+                            isEventTapLeader = true
+                            if setupEventTap() {
+                                debugLog("Successfully became event tap leader after detecting dead leader")
+                            }
+                        }
+                    }
+                }
+            } else {
+                // No lock file exists, try to become leader
+                debugLog("No lock file exists, attempting to become leader")
+                if tryBecomeEventTapLeader() {
+                    isEventTapLeader = true
+                    if setupEventTap() {
+                        debugLog("Successfully became event tap leader (no previous lock file)")
+                    }
+                }
+            }
+        }
+    }
 }
 
-// Get the frontmost browser's bundle ID
+// Get the frontmost browser's bundle ID - check against ALL known browsers, not just enabled ones
 func getFrontmostBrowserBundleId() -> String? {
     guard let frontApp = NSWorkspace.shared.frontmostApplication,
-          let bundleId = frontApp.bundleIdentifier,
-          BrowserConfigManager.shared.enabledBundleIds.contains(bundleId) else {
+          let bundleId = frontApp.bundleIdentifier else {
         return nil
     }
-    return bundleId
+    
+    // Check if this is any known Chromium browser (not just enabled ones)
+    // This allows the event tap to work even before setup is complete
+    let allKnownBrowserIds = Set(knownBrowsers.map { $0.id })
+    if allKnownBrowserIds.contains(bundleId) {
+        return bundleId
+    }
+    
+    return nil
 }
 
 // Post notification to all native hosts - includes frontmost browser so only that browser responds
@@ -1394,10 +1559,14 @@ func eventTapCallback(
     }
     
     // Only process when a supported browser is active
-    // Check if ANY Chrome is frontmost (not profile-specific)
+    // Check against ALL known browsers (not just enabled ones) so it works before setup
     guard let frontApp = NSWorkspace.shared.frontmostApplication,
-          let bundleId = frontApp.bundleIdentifier,
-          BrowserConfigManager.shared.enabledBundleIds.contains(bundleId) else {
+          let bundleId = frontApp.bundleIdentifier else {
+        return Unmanaged.passRetained(event)
+    }
+    
+    let allKnownBrowserIds = Set(knownBrowsers.map { $0.id })
+    guard allKnownBrowserIds.contains(bundleId) else {
         return Unmanaged.passRetained(event)
     }
     
@@ -1517,9 +1686,39 @@ func startMessageReader() {
 
 import Combine
 
-// Check if stdin is a TTY (launched directly) or pipe (launched via native messaging)
+// Check if launched directly (from Finder/Dock) or via native messaging (from browser)
 func isLaunchedDirectly() -> Bool {
-    return isatty(STDIN_FILENO) != 0
+    // If Chrome launches via native messaging, it passes the extension URL as an argument
+    // Example: chrome-extension://<id>/
+    let args = ProcessInfo.processInfo.arguments
+    if args.contains(where: { $0.hasPrefix("chrome-extension://") }) {
+        debugLog("Detected chrome-extension:// arg - launched via native messaging")
+        return false
+    }
+    
+    // Check if parent process is launchd (PID 1) - means launched from Finder/Spotlight/Dock
+    let parentPid = getppid()
+    if parentPid == 1 {
+        debugLog("Parent PID is 1 (launchd) - launched directly")
+        return true
+    }
+    
+    // Check if stdin is a pipe (native messaging) vs /dev/null or TTY (direct launch)
+    var statInfo = stat()
+    if fstat(STDIN_FILENO, &statInfo) == 0 {
+        // S_IFIFO means it's a pipe (native messaging from browser)
+        let mode = statInfo.st_mode & S_IFMT
+        let isPipe = mode == S_IFIFO
+        debugLog("stdin mode: \(mode), isPipe: \(isPipe)")
+        if isPipe {
+            return false  // Launched via native messaging
+        }
+    }
+    
+    // Fallback to isatty check
+    let isTTY = isatty(STDIN_FILENO) != 0
+    debugLog("isatty check: \(isTTY)")
+    return true  // If not a pipe, assume direct launch
 }
 
 // Check if another instance of the app is already running (for direct launch only)
@@ -1527,26 +1726,39 @@ func isAnotherInstanceRunning() -> Bool {
     let currentPID = ProcessInfo.processInfo.processIdentifier
     let runningApps = NSWorkspace.shared.runningApplications
     
-    // Look for other instances of Tab Switcher that were launched directly (in dock)
+    // Look for other Tab Switcher instances (any activation policy)
     for app in runningApps {
         if app.bundleIdentifier == Bundle.main.bundleIdentifier,
-           app.processIdentifier != currentPID,
-           app.activationPolicy == .regular {
+           app.processIdentifier != currentPID {
             return true
         }
     }
     return false
 }
 
-// Bring existing instance to front
-func activateExistingInstance() {
-    let runningApps = NSWorkspace.shared.runningApplications
-    for app in runningApps {
-        if app.bundleIdentifier == Bundle.main.bundleIdentifier,
-           app.activationPolicy == .regular {
-            app.activate(options: [.activateIgnoringOtherApps])
-            return
-        }
+// Tell existing instances to show their config window
+func notifyExistingInstancesToShowConfig() {
+    debugLog("Notifying existing instances to show config")
+    DistributedNotificationCenter.default().postNotificationName(
+        NSNotification.Name(showConfigNotificationName),
+        object: nil,
+        userInfo: nil,
+        deliverImmediately: true
+    )
+}
+
+// Check if accessibility permission is granted, optionally prompting the user
+func checkAccessibilityPermission(prompt: Bool = false) -> Bool {
+    if prompt {
+        // This will trigger the system permission prompt if not already granted
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        let trusted = AXIsProcessTrustedWithOptions(options)
+        debugLog("Accessibility check with prompt: \(trusted)")
+        return trusted
+    } else {
+        let trusted = AXIsProcessTrusted()
+        debugLog("Accessibility check (no prompt): \(trusted)")
+        return trusted
     }
 }
 
@@ -1584,13 +1796,42 @@ func main() {
     let directLaunch = isLaunchedDirectly()
     debugLog("Launched directly: \(directLaunch)")
     
-    // For direct launches, check if another instance is already running
+    // For direct launches, check if another DIRECTLY-LAUNCHED instance is already running
+    // (Native messaging hosts don't count - they can't show config windows)
     if directLaunch {
-        if isAnotherInstanceRunning() {
-            debugLog("Another instance is already running, activating it instead")
-            activateExistingInstance()
+        let currentPID = ProcessInfo.processInfo.processIdentifier
+        var directlyLaunchedInstanceExists = false
+        
+        for app in NSWorkspace.shared.runningApplications {
+            if app.bundleIdentifier == Bundle.main.bundleIdentifier,
+               app.processIdentifier != currentPID,
+               app.activationPolicy == .regular {  // Only count apps showing in dock
+                directlyLaunchedInstanceExists = true
+                break
+            }
+        }
+        
+        if directlyLaunchedInstanceExists {
+            // Another directly-launched instance exists, activate it and exit
+            debugLog("Another directly-launched instance exists, activating it")
+            for app in NSWorkspace.shared.runningApplications {
+                if app.bundleIdentifier == Bundle.main.bundleIdentifier,
+                   app.activationPolicy == .regular {
+                    app.activate(options: [])
+                    break
+                }
+            }
             exit(0)
         }
+        
+        // No directly-launched instance, so we'll show the config
+        // (There might be native messaging hosts running, but they can't show config)
+        debugLog("No directly-launched instance found, we will show config")
+        
+        // Proactively check/request accessibility permission when launched directly
+        // This triggers the system permission prompt if not already granted
+        let hasAccessibility = checkAccessibilityPermission(prompt: true)
+        debugLog("Accessibility permission: \(hasAccessibility)")
     }
     
     // Try to become the event tap leader (only one native host should have the event tap)
@@ -1607,28 +1848,14 @@ func main() {
     }
     
     // Only setup event tap if we're the leader
+    var eventTapSuccess = false
     if isEventTapLeader {
-        let eventTapSuccess = setupEventTap()
+        eventTapSuccess = setupEventTap()
         if !eventTapSuccess {
-            debugLog("Failed to setup event tap")
-            // If launched directly, show alert about accessibility permission
-            if directLaunch {
-                // Need to initialize NSApp first for alerts
-                let app = NSApplication.shared
-                app.setActivationPolicy(.regular)
-                showAccessibilityAlert()
-                
-                // Continue with config UI only
-                let delegate = AppDelegate()
-                delegate.launchedDirectly = true
-                app.delegate = delegate
-                BrowserConfigManager.shared.showingSetup = true
-                app.run()
-                return
-            }
-            exit(1)
+            debugLog("Failed to setup event tap - likely missing accessibility permission")
+        } else {
+            debugLog("Event tap setup complete (we are the leader)")
         }
-        debugLog("Event tap setup complete (we are the leader)")
     } else {
         debugLog("Not the event tap leader, will listen for notifications only")
     }
