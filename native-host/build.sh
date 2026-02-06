@@ -35,6 +35,24 @@ echo "==> Building release binary..."
 cd "$SCRIPT_DIR"
 swift build -c release
 
+echo "==> Generating app icon from .icon source..."
+ICON_SRC="$SCRIPT_DIR/AppIcon.icon"
+if [ -d "$ICON_SRC" ]; then
+    xcrun actool "$ICON_SRC" \
+        --compile "$APP_BUNDLE/Contents/Resources" \
+        --output-format human-readable-text --notices --warnings --errors \
+        --output-partial-info-plist /tmp/icon-partial.plist \
+        --app-icon AppIcon --include-all-app-icons \
+        --enable-on-demand-resources NO \
+        --development-region en \
+        --target-device mac \
+        --minimum-deployment-target 26.0 \
+        --platform macosx
+    echo "   Icon compiled (Assets.car + AppIcon.icns)"
+else
+    echo "   Skipping icon generation (AppIcon.icon not found)"
+fi
+
 echo "==> Copying binary to app bundle..."
 cp ".build/release/$BINARY_NAME" "$APP_BUNDLE/Contents/MacOS/$BINARY_NAME"
 

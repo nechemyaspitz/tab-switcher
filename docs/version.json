@@ -1,11 +1,11 @@
 {
   "app": {
-    "version": "3.7.1",
+    "version": "3.7.2",
     "downloadUrl": "https://tabswitcher.app/Tab%20Switcher.dmg",
-    "releaseNotes": "Remote browser config, support for Chrome Dev/Canary, Comet, Atlas, Thorium"
+    "releaseNotes": "New app icon"
   },
   "extension": {
-    "version": "3.7.1",
+    "version": "3.7.2",
     "chromeWebStoreUrl": null,
     "releaseNotes": "Version sync with app"
   }
