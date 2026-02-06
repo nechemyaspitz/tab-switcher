@@ -40,6 +40,20 @@ var versionLabel = document.getElementById("version-label");
 var currentVersion = chrome.runtime.getManifest().version;
 versionLabel.textContent = "v" + currentVersion;
 
+// Load custom shortcut display from storage
+chrome.storage.local.get("shortcuts", function(data) {
+  if (data.shortcuts) {
+    if (data.shortcuts.tabSwitch) {
+      var el = document.getElementById("tab-switch-keys");
+      if (el) el.innerHTML = '<span class="key">' + data.shortcuts.tabSwitch + '</span>';
+    }
+    if (data.shortcuts.copyUrl) {
+      var el = document.getElementById("copy-url-keys");
+      if (el) el.innerHTML = '<span class="key">' + data.shortcuts.copyUrl + '</span>';
+    }
+  }
+});
+
 chrome.runtime.sendMessage({ action: "get_version_info" }, function(info) {
   if (chrome.runtime.lastError || !info) return;
 

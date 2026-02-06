@@ -4,18 +4,21 @@
 
 [Website](https://tabswitcher.app) · [Download](https://tabswitcher.app/Tab%20Switcher.dmg) · [Setup Guide](https://tabswitcher.app/setup)
 
-> **Note:** Tab Switcher is currently pending Chrome Web Store approval. For now, manual installation is required. Once approved, you'll be able to install directly from the Chrome Web Store without needing to enter an Extension ID.
-
 ## Features
 
 - **Visual tab previews** — See thumbnails, favicons, and titles as you cycle through tabs
 - **Most recently used order** — Tabs ordered by recency, not position. One Ctrl+Tab instantly jumps to your last tab
-- **Native performance** — A lightweight macOS companion app intercepts the shortcut at the system level
+- **Copy URL shortcut** — Press Cmd+Shift+C to copy the current tab's URL to your clipboard with a confirmation toast
+- **Customizable shortcuts** — Remap both the tab switcher and copy URL shortcuts to any key combination
+- **Native performance** — A lightweight macOS companion app intercepts shortcuts at the system level
 - **Multi-browser support** — Chrome, Brave, Edge, Arc, Vivaldi, Opera, and any Chromium-based browser
+- **Auto-updates** — The native app updates itself automatically via Sparkle
 
 ## How It Works
 
 Hold **Ctrl** and press **Tab** to bring up the visual switcher. Keep holding Ctrl and press Tab repeatedly to cycle through your tabs. Release Ctrl to switch to the selected tab.
+
+Press **Cmd+Shift+C** to instantly copy the active tab's URL to your clipboard.
 
 Works exactly like macOS app switching (Cmd+Tab), but for your browser tabs.
 
@@ -23,7 +26,7 @@ Works exactly like macOS app switching (Cmd+Tab), but for your browser tabs.
 
 Tab Switcher requires two components: a browser extension and a native macOS app.
 
-### 1. Install the Extension (Manual — Chrome Web Store coming soon)
+### 1. Install the Extension
 
 1. Download or clone this repository
 2. Open Chrome and go to `chrome://extensions`
@@ -45,7 +48,7 @@ Download the macOS app from [tabswitcher.app](https://tabswitcher.app/Tab%20Swit
 
 If not prompted automatically:
 
-1. Open **System Settings → Privacy & Security → Accessibility**
+1. Open **System Settings > Privacy & Security > Accessibility**
 2. Enable the toggle next to Tab Switcher
 
 ## Keyboard Shortcuts
@@ -54,7 +57,10 @@ If not prompted automatically:
 |----------|--------|
 | **Ctrl+Tab** | Open switcher, cycle forward |
 | **Ctrl+Shift+Tab** | Cycle backward |
+| **Cmd+Shift+C** | Copy current tab URL |
 | **Alt+W** | Quick switch to last tab (no UI) |
+
+All shortcuts can be customized in the app's setup window.
 
 ## Requirements
 
@@ -77,7 +83,40 @@ cd native-host
 swift build -c release
 ```
 
-The app bundle is at `dist/Tab Switcher.app`.
+The built binary will be at `native-host/.build/release/tab-switcher`. To create a full app bundle with the Sparkle framework embedded:
+
+```bash
+cd native-host
+./build.sh
+```
+
+The app bundle will be at `dist/Tab Switcher.app`. Code signing and notarization require a valid Apple Developer ID certificate and are optional for local development:
+
+```bash
+./build.sh --sign              # build + code sign
+./build.sh --sign --notarize   # build + sign + notarize
+```
+
+## Project Structure
+
+```
+├── manifest.json          # Chrome extension manifest
+├── mainsw.js              # Extension service worker
+├── popup.html/js          # Extension popup UI
+├── icon*.png              # Extension icons
+├── native-host/
+│   ├── Package.swift      # Swift package definition
+│   ├── Sources/
+│   │   └── tab-switcher/
+│   │       └── main.swift # Native macOS app
+│   ├── build.sh           # Build + sign + notarize script
+│   ├── install.sh         # Install native messaging host
+│   └── uninstall.sh       # Uninstall native messaging host
+└── docs/                  # Website (GitHub Pages)
+    ├── index.html
+    ├── setup.html
+    └── privacy.html
+```
 
 ## Troubleshooting
 

@@ -1,12 +1,12 @@
 {
   "app": {
-    "version": "3.4",
+    "version": "3.5",
     "downloadUrl": "https://tabswitcher.app/Tab%20Switcher.dmg",
-    "releaseNotes": "Auto-updates via Sparkle"
+    "releaseNotes": "Copy URL shortcut, customizable keyboard shortcuts, toast notifications"
   },
   "extension": {
-    "version": "3.4",
+    "version": "3.5",
     "chromeWebStoreUrl": null,
-    "releaseNotes": "Auto-updates via Sparkle"
+    "releaseNotes": "Copy URL shortcut support"
   }
 }

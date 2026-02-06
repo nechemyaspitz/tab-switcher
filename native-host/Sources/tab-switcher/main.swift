@@ -5,7 +5,128 @@ import Carbon.HIToolbox
 import ApplicationServices
 import Sparkle
 
-let APP_VERSION = "3.4"
+let APP_VERSION = "3.5"
+
+// MARK: - Keyboard Shortcut Configuration
+
+func keyCodeToString(_ keyCode: Int64) -> String {
+    switch Int(keyCode) {
+    case kVK_Tab: return "⇥"
+    case kVK_Return: return "↩"
+    case kVK_Space: return "Space"
+    case kVK_Delete: return "⌫"
+    case kVK_Escape: return "⎋"
+    case kVK_UpArrow: return "↑"
+    case kVK_DownArrow: return "↓"
+    case kVK_LeftArrow: return "←"
+    case kVK_RightArrow: return "→"
+    case kVK_ANSI_A: return "A"
+    case kVK_ANSI_B: return "B"
+    case kVK_ANSI_C: return "C"
+    case kVK_ANSI_D: return "D"
+    case kVK_ANSI_E: return "E"
+    case kVK_ANSI_F: return "F"
+    case kVK_ANSI_G: return "G"
+    case kVK_ANSI_H: return "H"
+    case kVK_ANSI_I: return "I"
+    case kVK_ANSI_J: return "J"
+    case kVK_ANSI_K: return "K"
+    case kVK_ANSI_L: return "L"
+    case kVK_ANSI_M: return "M"
+    case kVK_ANSI_N: return "N"
+    case kVK_ANSI_O: return "O"
+    case kVK_ANSI_P: return "P"
+    case kVK_ANSI_Q: return "Q"
+    case kVK_ANSI_R: return "R"
+    case kVK_ANSI_S: return "S"
+    case kVK_ANSI_T: return "T"
+    case kVK_ANSI_U: return "U"
+    case kVK_ANSI_V: return "V"
+    case kVK_ANSI_W: return "W"
+    case kVK_ANSI_X: return "X"
+    case kVK_ANSI_Y: return "Y"
+    case kVK_ANSI_Z: return "Z"
+    case kVK_ANSI_0: return "0"
+    case kVK_ANSI_1: return "1"
+    case kVK_ANSI_2: return "2"
+    case kVK_ANSI_3: return "3"
+    case kVK_ANSI_4: return "4"
+    case kVK_ANSI_5: return "5"
+    case kVK_ANSI_6: return "6"
+    case kVK_ANSI_7: return "7"
+    case kVK_ANSI_8: return "8"
+    case kVK_ANSI_9: return "9"
+    case kVK_ANSI_Grave: return "`"
+    case kVK_ANSI_Minus: return "-"
+    case kVK_ANSI_Equal: return "="
+    case kVK_ANSI_LeftBracket: return "["
+    case kVK_ANSI_RightBracket: return "]"
+    case kVK_ANSI_Backslash: return "\\"
+    case kVK_ANSI_Semicolon: return ";"
+    case kVK_ANSI_Quote: return "'"
+    case kVK_ANSI_Comma: return ","
+    case kVK_ANSI_Period: return "."
+    case kVK_ANSI_Slash: return "/"
+    case kVK_F1: return "F1"
+    case kVK_F2: return "F2"
+    case kVK_F3: return "F3"
+    case kVK_F4: return "F4"
+    case kVK_F5: return "F5"
+    case kVK_F6: return "F6"
+    case kVK_F7: return "F7"
+    case kVK_F8: return "F8"
+    case kVK_F9: return "F9"
+    case kVK_F10: return "F10"
+    case kVK_F11: return "F11"
+    case kVK_F12: return "F12"
+    default: return "Key\(keyCode)"
+    }
+}
+
+struct ShortcutConfig: Codable, Equatable {
+    var keyCode: Int64
+    var modifiers: UInt64
+
+    var displayString: String {
+        var parts: [String] = []
+        let flags = CGEventFlags(rawValue: modifiers)
+        if flags.contains(.maskControl) { parts.append("⌃") }
+        if flags.contains(.maskAlternate) { parts.append("⌥") }
+        if flags.contains(.maskShift) { parts.append("⇧") }
+        if flags.contains(.maskCommand) { parts.append("⌘") }
+        parts.append(keyCodeToString(keyCode))
+        return parts.joined()
+    }
+}
+
+struct ShortcutsConfiguration: Codable {
+    var tabSwitch: ShortcutConfig
+    var copyUrl: ShortcutConfig
+
+    static let defaults = ShortcutsConfiguration(
+        tabSwitch: ShortcutConfig(
+            keyCode: Int64(kVK_Tab),
+            modifiers: CGEventFlags.maskControl.rawValue
+        ),
+        copyUrl: ShortcutConfig(
+            keyCode: Int64(kVK_ANSI_C),
+            modifiers: CGEventFlags([.maskCommand, .maskShift]).rawValue
+        )
+    )
+}
+
+// Global shortcut config (read by event tap callback — C function pointer can only read globals)
+var tabSwitchKeyCode: Int64 = Int64(kVK_Tab)
+var tabSwitchModifiers: UInt64 = CGEventFlags.maskControl.rawValue
+var copyUrlKeyCode: Int64 = Int64(kVK_ANSI_C)
+var copyUrlModifiers: UInt64 = CGEventFlags([.maskCommand, .maskShift]).rawValue
+
+func updateShortcutGlobals(from config: ShortcutsConfiguration) {
+    tabSwitchKeyCode = config.tabSwitch.keyCode
+    tabSwitchModifiers = config.tabSwitch.modifiers
+    copyUrlKeyCode = config.copyUrl.keyCode
+    copyUrlModifiers = config.copyUrl.modifiers
+}
 
 // MARK: - Browser Configuration
 
@@ -102,16 +223,47 @@ class BrowserConfigManager: ObservableObject {
     
     @Published var browsers: [BrowserInfo] = []
     @Published var showingSetup = false
-    
+    @Published var shortcuts: ShortcutsConfiguration = .defaults
+
     private let configURL: URL = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let configDir = appSupport.appendingPathComponent("TabSwitcher")
         try? FileManager.default.createDirectory(at: configDir, withIntermediateDirectories: true)
         return configDir.appendingPathComponent("browsers.json")
     }()
-    
+
+    private let shortcutsURL: URL = {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let configDir = appSupport.appendingPathComponent("TabSwitcher")
+        try? FileManager.default.createDirectory(at: configDir, withIntermediateDirectories: true)
+        return configDir.appendingPathComponent("shortcuts.json")
+    }()
+
     init() {
         loadConfig()
+        loadShortcuts()
+    }
+
+    func loadShortcuts() {
+        if let data = try? Data(contentsOf: shortcutsURL),
+           let saved = try? JSONDecoder().decode(ShortcutsConfiguration.self, from: data) {
+            shortcuts = saved
+        }
+        updateShortcutGlobals(from: shortcuts)
+    }
+
+    func saveShortcuts() {
+        if let data = try? JSONEncoder().encode(shortcuts) {
+            try? data.write(to: shortcutsURL)
+        }
+        updateShortcutGlobals(from: shortcuts)
+        // Notify other instances
+        DistributedNotificationCenter.default().postNotificationName(
+            NSNotification.Name("com.tabswitcher.shortcutsChanged"),
+            object: nil,
+            userInfo: nil,
+            deliverImmediately: true
+        )
     }
     
     func loadConfig() {
@@ -242,6 +394,109 @@ final class UpdaterViewModel: ObservableObject {
 
 let updaterViewModel = UpdaterViewModel()
 
+// MARK: - Shortcut Recorder
+
+class ShortcutRecorderNSView: NSView {
+    var onShortcutRecorded: ((Int64, UInt64) -> Void)?
+    var displayString = ""
+    var isRecording = false
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override func mouseDown(with event: NSEvent) {
+        isRecording = true
+        displayString = "Press shortcut..."
+        needsDisplay = true
+        window?.makeFirstResponder(self)
+    }
+
+    private func recordEvent(_ event: NSEvent) -> Bool {
+        guard isRecording else { return false }
+        let keyCode = Int64(event.keyCode)
+        let modifiers = event.modifierFlags.intersection([.control, .option, .shift, .command])
+        guard !modifiers.isEmpty else { return false }
+
+        var cgFlags: CGEventFlags = []
+        if modifiers.contains(.control) { cgFlags.insert(.maskControl) }
+        if modifiers.contains(.option) { cgFlags.insert(.maskAlternate) }
+        if modifiers.contains(.shift) { cgFlags.insert(.maskShift) }
+        if modifiers.contains(.command) { cgFlags.insert(.maskCommand) }
+
+        onShortcutRecorded?(keyCode, cgFlags.rawValue)
+        isRecording = false
+        needsDisplay = true
+        return true
+    }
+
+    // performKeyEquivalent catches Tab and other keys that macOS normally intercepts
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if recordEvent(event) { return true }
+        return super.performKeyEquivalent(with: event)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        if recordEvent(event) { return }
+        super.keyDown(with: event)
+    }
+
+    override func resignFirstResponder() -> Bool {
+        if isRecording {
+            isRecording = false
+            needsDisplay = true
+        }
+        return super.resignFirstResponder()
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let bgColor: NSColor = isRecording ? .controlAccentColor.withAlphaComponent(0.15) : .controlBackgroundColor
+        bgColor.setFill()
+        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 1, dy: 1), xRadius: 6, yRadius: 6)
+        path.fill()
+
+        NSColor.separatorColor.setStroke()
+        path.stroke()
+
+        let text = isRecording ? "Press shortcut..." : displayString
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 13, weight: .medium),
+            .foregroundColor: isRecording ? NSColor.secondaryLabelColor : NSColor.labelColor
+        ]
+        let str = NSAttributedString(string: text, attributes: attrs)
+        let textSize = str.size()
+        let textRect = NSRect(
+            x: (bounds.width - textSize.width) / 2,
+            y: (bounds.height - textSize.height) / 2,
+            width: textSize.width,
+            height: textSize.height
+        )
+        str.draw(in: textRect)
+    }
+}
+
+struct ShortcutRecorderView: NSViewRepresentable {
+    @Binding var shortcut: ShortcutConfig
+    var onChange: (() -> Void)?
+
+    func makeNSView(context: Context) -> ShortcutRecorderNSView {
+        let view = ShortcutRecorderNSView()
+        view.displayString = shortcut.displayString
+        view.onShortcutRecorded = { keyCode, modifiers in
+            shortcut = ShortcutConfig(keyCode: keyCode, modifiers: modifiers)
+            onChange?()
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: ShortcutRecorderNSView, context: Context) {
+        nsView.displayString = shortcut.displayString
+        nsView.onShortcutRecorded = { keyCode, modifiers in
+            shortcut = ShortcutConfig(keyCode: keyCode, modifiers: modifiers)
+            onChange?()
+        }
+        nsView.needsDisplay = true
+    }
+}
+
 // MARK: - Setup Window View
 
 struct SetupView: View {
@@ -275,7 +530,45 @@ struct SetupView: View {
                     }
                 }
             }
-            .frame(maxHeight: 400)
+            .frame(maxHeight: 350)
+
+            Divider()
+
+            // Keyboard Shortcuts
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Keyboard Shortcuts")
+                    .font(.headline)
+                    .padding(.top, 4)
+
+                HStack {
+                    Text("Switch Tabs")
+                        .frame(width: 100, alignment: .leading)
+                    ShortcutRecorderView(
+                        shortcut: $configManager.shortcuts.tabSwitch,
+                        onChange: { configManager.saveShortcuts() }
+                    )
+                    .frame(height: 28)
+                }
+
+                HStack {
+                    Text("Copy URL")
+                        .frame(width: 100, alignment: .leading)
+                    ShortcutRecorderView(
+                        shortcut: $configManager.shortcuts.copyUrl,
+                        onChange: { configManager.saveShortcuts() }
+                    )
+                    .frame(height: 28)
+                }
+
+                Button("Reset to Defaults") {
+                    configManager.shortcuts = .defaults
+                    configManager.saveShortcuts()
+                }
+                .font(.caption)
+                .buttonStyle(.link)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
 
             Divider()
 
@@ -302,7 +595,7 @@ struct SetupView: View {
             }
             .padding()
         }
-        .frame(width: 450, height: 550)
+        .frame(width: 450, height: 650)
     }
 }
 
@@ -537,6 +830,111 @@ class TabSwitcherState: ObservableObject {
             self.isVisible = false
         }
     }
+}
+
+// MARK: - Toast Notification
+
+class ToastManager: ObservableObject {
+    static let shared = ToastManager()
+
+    @Published var isVisible = false
+    @Published var isAnimatingOut = false
+    @Published var message = ""
+    @Published var detail = ""
+
+    private var dismissTimer: DispatchWorkItem?
+    private var animateOutTimer: DispatchWorkItem?
+
+    func showToast(message: String, detail: String, duration: TimeInterval = 2.0) {
+        DispatchQueue.main.async {
+            self.dismissTimer?.cancel()
+            self.animateOutTimer?.cancel()
+            self.isAnimatingOut = false
+            self.message = message
+            self.detail = detail
+            self.isVisible = true
+
+            let timer = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                self.isAnimatingOut = true
+                let hideTimer = DispatchWorkItem { [weak self] in
+                    self?.isVisible = false
+                    self?.isAnimatingOut = false
+                }
+                self.animateOutTimer = hideTimer
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: hideTimer)
+            }
+            self.dismissTimer = timer
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: timer)
+        }
+    }
+}
+
+struct ToastView: View {
+    @ObservedObject var toast = ToastManager.shared
+    let toastWidth: CGFloat = 260
+
+    var body: some View {
+        if toast.isVisible {
+            HStack(spacing: 10) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(Color(red: 0.3, green: 0.85, blue: 0.4))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(toast.message)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                    Text(toast.detail)
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.6))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                Spacer()
+            }
+            .frame(width: toastWidth)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(white: 0.22))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 0.5)
+            )
+            .opacity(toast.isAnimatingOut ? 0 : 1)
+            .scaleEffect(toast.isAnimatingOut ? 0.95 : 1)
+            .animation(.easeInOut(duration: 0.25), value: toast.isAnimatingOut)
+        }
+    }
+}
+
+class ToastWindow: NSPanel {
+    init() {
+        super.init(
+            contentRect: NSRect(x: 0, y: 0, width: 290, height: 54),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+
+        self.level = .floating
+        self.isOpaque = false
+        self.backgroundColor = .clear
+        self.hasShadow = true
+        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        self.isMovableByWindowBackground = false
+
+        let hostingView = NSHostingView(rootView: ToastView())
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = .clear
+        self.contentView = hostingView
+    }
+
+    override var canBecomeKey: Bool { false }
+    override var canBecomeMain: Bool { false }
 }
 
 // MARK: - Tab Card View
@@ -822,8 +1220,10 @@ class TabSwitcherWindow: NSPanel {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var window: TabSwitcherWindow?
+    var toastWindow: ToastWindow?
     var setupWindow: NSWindow?
     var cancellable: AnyCancellable?
+    var toastCancellable: AnyCancellable?
     var setupCancellable: AnyCancellable?
     var launchedDirectly = false
     
@@ -836,7 +1236,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Create the floating window for tab switching UI
         window = TabSwitcherWindow()
+        toastWindow = ToastWindow()
         debugLog("Window created")
+
+        // Observe toast visibility
+        toastCancellable = ToastManager.shared.$isVisible.sink { [weak self] isVisible in
+            DispatchQueue.main.async {
+                if isVisible {
+                    let toastWidth: CGFloat = 290
+                    let toastHeight: CGFloat = 54
+                    let bottomMargin: CGFloat = 20
+                    // Position bottom-center of browser window
+                    if let chromeFrame = getBrowserWindowFrame() {
+                        let x = chromeFrame.midX - toastWidth / 2
+                        let y = chromeFrame.minY + bottomMargin
+                        self?.toastWindow?.setContentSize(NSSize(width: toastWidth, height: toastHeight))
+                        self?.toastWindow?.setFrameOrigin(NSPoint(x: x, y: y))
+                    } else if let screen = NSScreen.main {
+                        let x = screen.visibleFrame.midX - toastWidth / 2
+                        let y = screen.visibleFrame.minY + bottomMargin
+                        self?.toastWindow?.setContentSize(NSSize(width: toastWidth, height: toastHeight))
+                        self?.toastWindow?.setFrameOrigin(NSPoint(x: x, y: y))
+                    }
+                    self?.toastWindow?.invalidateShadow()
+                    self?.toastWindow?.orderFront(nil)
+                } else {
+                    self?.toastWindow?.orderOut(nil)
+                }
+            }
+        }
         
         // Only show setup UI when launched directly (from Finder/Dock)
         // Native messaging launches should NEVER show UI or dock icon
@@ -944,7 +1372,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if setupWindow == nil {
             let setupView = SetupView()
             setupWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 450, height: 550),
+                contentRect: NSRect(x: 0, y: 0, width: 450, height: 650),
                 styleMask: [.titled, .closable],
                 backing: .buffered,
                 defer: false
@@ -1158,14 +1586,29 @@ func handleMessage(_ message: [String: Any]) {
             } else {
                 debugLog("Already auto-detected browser: \(ownerBrowserBundleId!) (PID \(ownerBrowserProcessId ?? -1)), ignoring extension registration: \(bundleId)")
             }
-            sendMessage(["action": "registered", "bundleId": ownerBrowserBundleId ?? bundleId])
+            let shortcuts: [String: String] = [
+                "tabSwitch": BrowserConfigManager.shared.shortcuts.tabSwitch.displayString,
+                "copyUrl": BrowserConfigManager.shared.shortcuts.copyUrl.displayString
+            ]
+            sendMessage(["action": "registered", "bundleId": ownerBrowserBundleId ?? bundleId, "shortcuts": shortcuts])
         }
         
     case "ping":
         // Respond to ping to confirm connection is alive
         debugLog("Received ping, sending pong")
         sendMessage(["action": "pong"])
-    
+
+    case "url_copied":
+        if let url = message["url"] as? String {
+            debugLog("Received URL to copy: \(url)")
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(url, forType: .string)
+            DispatchQueue.main.async {
+                ToastManager.shared.showToast(message: "Copied!", detail: url)
+            }
+        }
+
     default:
         debugLog("Unknown action: \(action)")
     }
@@ -1261,7 +1704,7 @@ func getActiveBrowserBundleId() -> String? {
 
 // MARK: - Global State
 
-var ctrlIsPressed = false
+var switchModifierIsPressed = false
 var switchInProgress = false
 var tabPressCount = 0
 var ownerBrowserBundleId: String? = nil  // The browser that launched this native host instance
@@ -1402,6 +1845,8 @@ let ctrlTabNotificationName = "com.tabswitcher.ctrlTab"
 let ctrlReleaseNotificationName = "com.tabswitcher.ctrlRelease"
 let leaderResignedNotificationName = "com.tabswitcher.leaderResigned"
 let showConfigNotificationName = "com.tabswitcher.showConfig"
+let copyUrlNotificationName = "com.tabswitcher.copyUrl"
+let shortcutsChangedNotificationName = "com.tabswitcher.shortcutsChanged"
 
 // Setup listener for distributed notifications (for non-leader hosts)
 func setupNotificationListener() {
@@ -1492,6 +1937,24 @@ func setupNotificationListener() {
         }
     }
     
+    // Listen for copy-URL request
+    center.addObserver(forName: NSNotification.Name(copyUrlNotificationName), object: nil, queue: .main) { notification in
+        guard let userInfo = notification.userInfo,
+              let targetBrowser = userInfo["targetBrowser"] as? String else { return }
+        guard let myBrowser = ownerBrowserBundleId, myBrowser == targetBrowser else {
+            debugLog("Ignoring copy-url notification - not our browser")
+            return
+        }
+        debugLog("Received copy-url notification for our browser")
+        sendMessage(["action": "copy_url"])
+    }
+
+    // Listen for shortcut config changes from other instances
+    center.addObserver(forName: NSNotification.Name(shortcutsChangedNotificationName), object: nil, queue: .main) { _ in
+        debugLog("Received shortcuts-changed notification, reloading")
+        BrowserConfigManager.shared.loadShortcuts()
+    }
+
     debugLog("Notification listener setup complete (PID \(myProcessId), browser=\(ownerBrowserBundleId ?? "unknown"))")
     
     // Periodic check for dead leader (backup in case leader crashes without notification)
@@ -1587,6 +2050,19 @@ func postRequestShowUINotification(combineWindows: Bool) {
     )
 }
 
+func postCopyUrlNotification() {
+    guard let frontmostBrowser = getFrontmostBrowserBundleId() else { return }
+
+    let center = DistributedNotificationCenter.default()
+    center.postNotificationName(
+        NSNotification.Name(copyUrlNotificationName),
+        object: nil,
+        userInfo: ["targetBrowser": frontmostBrowser],
+        deliverImmediately: true
+    )
+    debugLog("Posted copy-url notification for browser: \(frontmostBrowser)")
+}
+
 // MARK: - Event Tap Callback
 
 func eventTapCallback(
@@ -1619,54 +2095,52 @@ func eventTapCallback(
     
     let flags = event.flags
     let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-    
+
+    // Mask to only modifier bits for matching
+    let modifierMask: UInt64 = CGEventFlags([.maskControl, .maskShift, .maskCommand, .maskAlternate]).rawValue
+    let currentMods = flags.rawValue & modifierMask
+
+    // Determine the primary modifier for the tab-switch shortcut (for release detection)
+    // Use the configured modifiers minus Shift (Shift is used for direction)
+    let switchModFlag = CGEventFlags(rawValue: tabSwitchModifiers & modifierMask & ~CGEventFlags.maskShift.rawValue)
+
     // Handle flags changed (modifier key state changes)
     if type == .flagsChanged {
-        let ctrlNowPressed = flags.contains(.maskControl)
-        
-        // Detect Ctrl release
-        if ctrlIsPressed && !ctrlNowPressed && switchInProgress {
-            // Cancel any pending show UI timer
+        let modifierNowPressed = !switchModFlag.isEmpty && flags.contains(switchModFlag)
+
+        // Detect switch modifier release
+        if switchModifierIsPressed && !modifierNowPressed && switchInProgress {
             showUITimer?.cancel()
             showUITimer = nil
-            
-            // Broadcast to ALL native hosts
             postCtrlReleaseNotification()
             switchInProgress = false
             tabPressCount = 0
         }
-        
-        ctrlIsPressed = ctrlNowPressed
+
+        switchModifierIsPressed = modifierNowPressed
         return Unmanaged.passRetained(event)
     }
-    
+
     // Handle key down events
     if type == .keyDown {
-        // Check for Tab key (keyCode 48)
-        if keyCode == kVK_Tab && flags.contains(.maskControl) {
+        // Check for tab-switch shortcut (Shift excluded from base match — it toggles direction)
+        let baseMods = tabSwitchModifiers & modifierMask & ~CGEventFlags.maskShift.rawValue
+        let currentBase = currentMods & ~CGEventFlags.maskShift.rawValue
+        if keyCode == tabSwitchKeyCode && currentBase == baseMods {
             if !switchInProgress {
                 switchInProgress = true
                 tabPressCount = 0
             }
-            ctrlIsPressed = true
+            switchModifierIsPressed = true
             tabPressCount += 1
-            
-            // Determine direction based on Shift key
-            let direction = flags.contains(.maskShift) ? "cycle_prev" : "cycle_next"
-            
-            // Reload config from disk to pick up any changes made in the config UI
-            BrowserConfigManager.shared.loadConfig()
-            
-            // Get the combineAllWindows setting - use false as default for safety
+
+            let direction = (currentMods & CGEventFlags.maskShift.rawValue != 0) ? "cycle_prev" : "cycle_next"
             let combineWindows = false
-            
-            debugLog("Broadcasting Ctrl+Tab: direction=\(direction), tabPressCount=\(tabPressCount)")
-            
+
+            debugLog("Broadcasting tab switch: direction=\(direction), tabPressCount=\(tabPressCount)")
+
             if tabPressCount == 1 {
-                // First Tab press: cycle but don't show UI yet
                 postCtrlTabNotification(direction: direction, showUI: false, combineWindows: combineWindows)
-                
-                // Start timer to show UI after delay
                 showUITimer?.cancel()
                 let timer = DispatchWorkItem {
                     postRequestShowUINotification(combineWindows: combineWindows)
@@ -1674,17 +2148,23 @@ func eventTapCallback(
                 showUITimer = timer
                 DispatchQueue.main.asyncAfter(deadline: .now() + showUIDelay, execute: timer)
             } else {
-                // Second+ Tab press: show UI immediately
                 showUITimer?.cancel()
                 showUITimer = nil
                 postCtrlTabNotification(direction: direction, showUI: true, combineWindows: combineWindows)
             }
-            
-            // Suppress the event
+
+            return nil
+        }
+
+        // Check for copy-URL shortcut
+        let copyMods = copyUrlModifiers & modifierMask
+        if keyCode == copyUrlKeyCode && currentMods == copyMods {
+            debugLog("Copy URL shortcut detected")
+            postCopyUrlNotification()
             return nil
         }
     }
-    
+
     return Unmanaged.passRetained(event)
 }
 

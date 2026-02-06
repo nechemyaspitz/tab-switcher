@@ -549,6 +549,9 @@ var connectNativeHost = function() {
 				sendToNativeHost({ action: "register", bundleId: browserBundleId, extensionVersion: EXTENSION_VERSION });
 			} else if (message.action === "registered") {
 				log("Successfully registered with native host for browser: " + message.bundleId);
+				if (message.shortcuts) {
+					chrome.storage.local.set({ shortcuts: message.shortcuts });
+				}
 			} else if (message.action === "pong") {
 				// Ping response - connection is alive
 				log("Received pong - connection alive");
@@ -566,6 +569,8 @@ var connectNativeHost = function() {
 				handleRequestShowUI(message.current_window_only);
 			} else if (message.action === "end_switch") {
 				handleNativeEndSwitch();
+			} else if (message.action === "copy_url") {
+				handleCopyUrl();
 			} else if (message.action === "error_no_accessibility") {
 				log("Native host error: No accessibility permissions");
 				nativeHostConnected = false;
@@ -799,6 +804,26 @@ var handleNativeEndSwitch = async function() {
 		// Reset filtered state
 		filteredMru = [];
 		currentWindowOnly = false;
+	}
+};
+
+var handleCopyUrl = async function() {
+	log("TabSwitch::COPY_URL requested");
+	var isFocused = await isThisProfileFocused();
+	if (!isFocused) {
+		log("TabSwitch::Ignoring copy_url - this profile is not focused");
+		return;
+	}
+	try {
+		var tabs = await chrome.tabs.query({active: true, currentWindow: true});
+		if (tabs && tabs.length > 0) {
+			var url = tabs[0].url;
+			var title = tabs[0].title || '';
+			log("TabSwitch::Sending URL to native host: " + url);
+			sendToNativeHost({ action: "url_copied", url: url, title: title });
+		}
+	} catch (e) {
+		log("TabSwitch::Error getting active tab URL: " + e.message);
 	}
 };
 
