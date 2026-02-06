@@ -1,0 +1,86 @@
+[
+  {
+    "id": "com.google.Chrome",
+    "name": "Google Chrome",
+    "appName": "Google Chrome",
+    "nativeMessagingPath": "Google/Chrome/NativeMessagingHosts"
+  },
+  {
+    "id": "com.google.Chrome.dev",
+    "name": "Google Chrome Dev",
+    "appName": "Google Chrome Dev",
+    "nativeMessagingPath": "Google/Chrome Dev/NativeMessagingHosts"
+  },
+  {
+    "id": "com.google.Chrome.canary",
+    "name": "Google Chrome Canary",
+    "appName": "Google Chrome Canary",
+    "nativeMessagingPath": "Google/Chrome Canary/NativeMessagingHosts"
+  },
+  {
+    "id": "com.brave.Browser",
+    "name": "Brave",
+    "appName": "Brave Browser",
+    "nativeMessagingPath": "BraveSoftware/Brave-Browser/NativeMessagingHosts"
+  },
+  {
+    "id": "com.microsoft.edgemac",
+    "name": "Microsoft Edge",
+    "appName": "Microsoft Edge",
+    "nativeMessagingPath": "Microsoft Edge/NativeMessagingHosts"
+  },
+  {
+    "id": "company.thebrowser.Browser",
+    "name": "Arc",
+    "appName": "Arc",
+    "nativeMessagingPath": "Arc/User Data/NativeMessagingHosts"
+  },
+  {
+    "id": "com.vivaldi.Vivaldi",
+    "name": "Vivaldi",
+    "appName": "Vivaldi",
+    "nativeMessagingPath": "Vivaldi/NativeMessagingHosts"
+  },
+  {
+    "id": "com.operasoftware.Opera",
+    "name": "Opera",
+    "appName": "Opera",
+    "nativeMessagingPath": "com.operasoftware.Opera/NativeMessagingHosts"
+  },
+  {
+    "id": "com.operasoftware.OperaGX",
+    "name": "Opera GX",
+    "appName": "Opera GX",
+    "nativeMessagingPath": "com.operasoftware.OperaGX/NativeMessagingHosts"
+  },
+  {
+    "id": "org.chromium.Chromium",
+    "name": "Chromium",
+    "appName": "Chromium",
+    "nativeMessagingPath": "Chromium/NativeMessagingHosts"
+  },
+  {
+    "id": "net.imput.helium",
+    "name": "Helium",
+    "appName": "Helium",
+    "nativeMessagingPath": "net.imput.helium/NativeMessagingHosts"
+  },
+  {
+    "id": "ai.perplexity.comet",
+    "name": "Comet",
+    "appName": "Comet",
+    "nativeMessagingPath": "Comet/NativeMessagingHosts"
+  },
+  {
+    "id": "com.openai.atlas",
+    "name": "ChatGPT Atlas",
+    "appName": "ChatGPT Atlas",
+    "nativeMessagingPath": "com.openai.atlas/NativeMessagingHosts"
+  },
+  {
+    "id": "org.chromium.Thorium",
+    "name": "Thorium",
+    "appName": "Thorium",
+    "nativeMessagingPath": "Thorium/NativeMessagingHosts"
+  }
+]

@@ -6,7 +6,7 @@ import ApplicationServices
 import Sparkle
 import UserNotifications
 
-let APP_VERSION = "3.6"
+let APP_VERSION = "3.7"
 
 // MARK: - Keyboard Shortcut Configuration
 
@@ -131,6 +131,14 @@ func updateShortcutGlobals(from config: ShortcutsConfiguration) {
 
 // MARK: - Browser Configuration
 
+// Minimal browser definition fetched from remote config
+struct BrowserDefinition: Codable {
+    let id: String
+    let name: String
+    let appName: String
+    let nativeMessagingPath: String
+}
+
 struct BrowserInfo: Identifiable, Codable {
     let id: String // bundle identifier
     let name: String
@@ -138,22 +146,42 @@ struct BrowserInfo: Identifiable, Codable {
     var extensionId: String? // user-provided extension ID
     var isEnabled: Bool
     var combineAllWindows: Bool = false // false = only current window tabs, true = all windows
-    
+    var appName: String // display name for .app bundle lookup
+
+    init(id: String, name: String, nativeMessagingPath: String, extensionId: String?, isEnabled: Bool, combineAllWindows: Bool = false, appName: String? = nil) {
+        self.id = id
+        self.name = name
+        self.nativeMessagingPath = nativeMessagingPath
+        self.extensionId = extensionId
+        self.isEnabled = isEnabled
+        self.combineAllWindows = combineAllWindows
+        self.appName = appName ?? name
+    }
+
+    init(from definition: BrowserDefinition) {
+        self.id = definition.id
+        self.name = definition.name
+        self.nativeMessagingPath = definition.nativeMessagingPath
+        self.extensionId = nil
+        self.isEnabled = false
+        self.combineAllWindows = false
+        self.appName = definition.appName
+    }
+
     var fullNativeMessagingPath: String {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         return "\(home)/Library/Application Support/\(nativeMessagingPath)"
     }
-    
+
     // Check if browser is installed
     var isInstalled: Bool {
-        // Check common locations
         let paths = [
             "/Applications/\(appName).app",
             "\(FileManager.default.homeDirectoryForCurrentUser.path)/Applications/\(appName).app"
         ]
         return paths.contains { FileManager.default.fileExists(atPath: $0) }
     }
-    
+
     var appPath: String? {
         let paths = [
             "/Applications/\(appName).app",
@@ -161,60 +189,57 @@ struct BrowserInfo: Identifiable, Codable {
         ]
         return paths.first { FileManager.default.fileExists(atPath: $0) }
     }
-    
-    var appName: String {
-        // Map bundle ID to app name
-        switch id {
-        case "com.google.Chrome": return "Google Chrome"
-        case "com.brave.Browser": return "Brave Browser"
-        case "com.microsoft.edgemac": return "Microsoft Edge"
-        case "company.thebrowser.Browser": return "Arc"
-        case "com.vivaldi.Vivaldi": return "Vivaldi"
-        case "com.operasoftware.Opera": return "Opera"
-        case "com.operasoftware.OperaGX": return "Opera GX"
-        case "org.chromium.Chromium": return "Chromium"
-        case "com.nicklockwood.Sidekick": return "Sidekick"
-        case "ru.nicklockwood.Yandex": return "Yandex Browser"
-        case "net.imput.helium": return "Helium"
-        default: return name
-        }
-    }
-    
+
     var icon: NSImage? {
         guard let path = appPath else { return nil }
         return NSWorkspace.shared.icon(forFile: path)
     }
 }
 
-// Known Chromium-based browsers
+// Hardcoded fallback browser list — remote browsers.json takes priority
 let knownBrowsers: [BrowserInfo] = [
     BrowserInfo(id: "com.google.Chrome", name: "Google Chrome",
                 nativeMessagingPath: "Google/Chrome/NativeMessagingHosts",
-                extensionId: nil, isEnabled: false),
+                extensionId: nil, isEnabled: false, appName: "Google Chrome"),
+    BrowserInfo(id: "com.google.Chrome.dev", name: "Google Chrome Dev",
+                nativeMessagingPath: "Google/Chrome Dev/NativeMessagingHosts",
+                extensionId: nil, isEnabled: false, appName: "Google Chrome Dev"),
+    BrowserInfo(id: "com.google.Chrome.canary", name: "Google Chrome Canary",
+                nativeMessagingPath: "Google/Chrome Canary/NativeMessagingHosts",
+                extensionId: nil, isEnabled: false, appName: "Google Chrome Canary"),
     BrowserInfo(id: "com.brave.Browser", name: "Brave",
                 nativeMessagingPath: "BraveSoftware/Brave-Browser/NativeMessagingHosts",
-                extensionId: nil, isEnabled: false),
+                extensionId: nil, isEnabled: false, appName: "Brave Browser"),
     BrowserInfo(id: "com.microsoft.edgemac", name: "Microsoft Edge",
                 nativeMessagingPath: "Microsoft Edge/NativeMessagingHosts",
-                extensionId: nil, isEnabled: false),
+                extensionId: nil, isEnabled: false, appName: "Microsoft Edge"),
     BrowserInfo(id: "company.thebrowser.Browser", name: "Arc",
                 nativeMessagingPath: "Arc/User Data/NativeMessagingHosts",
-                extensionId: nil, isEnabled: false),
+                extensionId: nil, isEnabled: false, appName: "Arc"),
     BrowserInfo(id: "com.vivaldi.Vivaldi", name: "Vivaldi",
                 nativeMessagingPath: "Vivaldi/NativeMessagingHosts",
-                extensionId: nil, isEnabled: false),
+                extensionId: nil, isEnabled: false, appName: "Vivaldi"),
     BrowserInfo(id: "com.operasoftware.Opera", name: "Opera",
                 nativeMessagingPath: "com.operasoftware.Opera/NativeMessagingHosts",
-                extensionId: nil, isEnabled: false),
+                extensionId: nil, isEnabled: false, appName: "Opera"),
     BrowserInfo(id: "com.operasoftware.OperaGX", name: "Opera GX",
                 nativeMessagingPath: "com.operasoftware.OperaGX/NativeMessagingHosts",
-                extensionId: nil, isEnabled: false),
+                extensionId: nil, isEnabled: false, appName: "Opera GX"),
     BrowserInfo(id: "org.chromium.Chromium", name: "Chromium",
                 nativeMessagingPath: "Chromium/NativeMessagingHosts",
-                extensionId: nil, isEnabled: false),
+                extensionId: nil, isEnabled: false, appName: "Chromium"),
     BrowserInfo(id: "net.imput.helium", name: "Helium",
                 nativeMessagingPath: "net.imput.helium/NativeMessagingHosts",
-                extensionId: nil, isEnabled: false),
+                extensionId: nil, isEnabled: false, appName: "Helium"),
+    BrowserInfo(id: "ai.perplexity.comet", name: "Comet",
+                nativeMessagingPath: "Comet/NativeMessagingHosts",
+                extensionId: nil, isEnabled: false, appName: "Comet"),
+    BrowserInfo(id: "com.openai.atlas", name: "ChatGPT Atlas",
+                nativeMessagingPath: "com.openai.atlas/NativeMessagingHosts",
+                extensionId: nil, isEnabled: false, appName: "ChatGPT Atlas"),
+    BrowserInfo(id: "org.chromium.Thorium", name: "Thorium",
+                nativeMessagingPath: "Thorium/NativeMessagingHosts",
+                extensionId: nil, isEnabled: false, appName: "Thorium"),
 ]
 
 // MARK: - Browser Configuration Manager
@@ -231,7 +256,14 @@ class BrowserConfigManager: ObservableObject {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let configDir = appSupport.appendingPathComponent("TabSwitcher")
         try? FileManager.default.createDirectory(at: configDir, withIntermediateDirectories: true)
-        return configDir.appendingPathComponent("browsers.json")
+        return configDir.appendingPathComponent("browser_config.json")
+    }()
+
+    private let cachedBrowserListURL: URL = {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let configDir = appSupport.appendingPathComponent("TabSwitcher")
+        try? FileManager.default.createDirectory(at: configDir, withIntermediateDirectories: true)
+        return configDir.appendingPathComponent("browser_list_cache.json")
     }()
 
     private let shortcutsURL: URL = {
@@ -244,6 +276,7 @@ class BrowserConfigManager: ObservableObject {
     init() {
         loadConfig()
         loadShortcuts()
+        fetchRemoteBrowserList()
     }
 
     func loadShortcuts() {
@@ -268,14 +301,35 @@ class BrowserConfigManager: ObservableObject {
         )
     }
     
+    /// Returns the base browser list: cached remote list if available, otherwise hardcoded fallback.
+    private func baseBrowserList() -> [BrowserInfo] {
+        // Try cached remote list first
+        if let data = try? Data(contentsOf: cachedBrowserListURL),
+           let definitions = try? JSONDecoder().decode([BrowserDefinition].self, from: data) {
+            debugLog("Using cached remote browser list (\(definitions.count) browsers)")
+            return definitions.map { BrowserInfo(from: $0) }
+        }
+        // Fall back to hardcoded list
+        debugLog("Using hardcoded browser list (\(knownBrowsers.count) browsers)")
+        return knownBrowsers
+    }
+
     func loadConfig() {
-        // Start with known browsers
-        var loadedBrowsers = knownBrowsers
-        
-        // Try to load saved config
+        // Migrate: if old browsers.json exists, move it to new name
+        let oldConfigURL = configURL.deletingLastPathComponent().appendingPathComponent("browsers.json")
+        if FileManager.default.fileExists(atPath: oldConfigURL.path),
+           !FileManager.default.fileExists(atPath: configURL.path) {
+            try? FileManager.default.moveItem(at: oldConfigURL, to: configURL)
+            debugLog("Migrated browsers.json to browser_config.json")
+        }
+
+        // Start with base browser list (cached remote or hardcoded fallback)
+        var loadedBrowsers = baseBrowserList()
+
+        // Try to load saved user config (enabled state, extension IDs)
         if let data = try? Data(contentsOf: configURL),
            let saved = try? JSONDecoder().decode([BrowserInfo].self, from: data) {
-            // Merge saved config with known browsers
+            // Merge saved config into browser list
             for (index, browser) in loadedBrowsers.enumerated() {
                 if let savedBrowser = saved.first(where: { $0.id == browser.id }) {
                     loadedBrowsers[index].extensionId = savedBrowser.extensionId
@@ -283,12 +337,48 @@ class BrowserConfigManager: ObservableObject {
                     loadedBrowsers[index].combineAllWindows = savedBrowser.combineAllWindows
                 }
             }
+            // Also include any saved browsers not in the base list (user had configured
+            // a browser that was later removed from remote list — keep their config)
+            for savedBrowser in saved where savedBrowser.isEnabled {
+                if !loadedBrowsers.contains(where: { $0.id == savedBrowser.id }) {
+                    loadedBrowsers.append(savedBrowser)
+                }
+            }
         }
-        
+
         browsers = loadedBrowsers
-        
-        // NOTE: Don't automatically show setup here - it's handled by AppDelegate
-        // based on whether we're launched directly or via native messaging
+    }
+
+    /// Fetches the browser list from the website and caches it locally.
+    /// On success, reloads the browser list to pick up any new browsers.
+    func fetchRemoteBrowserList() {
+        guard let url = URL(string: "https://tabswitcher.app/browsers.json") else { return }
+
+        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            guard let self = self,
+                  let data = data,
+                  let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                debugLog("Failed to fetch remote browser list: \(error?.localizedDescription ?? "unknown error")")
+                return
+            }
+
+            // Validate it's a proper browser list
+            guard let definitions = try? JSONDecoder().decode([BrowserDefinition].self, from: data),
+                  !definitions.isEmpty else {
+                debugLog("Remote browser list was empty or invalid")
+                return
+            }
+
+            // Cache it
+            try? data.write(to: self.cachedBrowserListURL)
+            debugLog("Cached remote browser list (\(definitions.count) browsers)")
+
+            // Reload config on main thread to pick up new browsers
+            DispatchQueue.main.async {
+                self.loadConfig()
+            }
+        }.resume()
     }
     
     func saveConfig() {
@@ -2109,7 +2199,16 @@ func detectParentBrowser() -> (String, pid_t)? {
                 return (bundleId, currentPid)
             }
             
-            // Check for browser helper processes by name
+            // Check for browser helper processes by bundle ID patterns
+            // Chrome variants: match the most specific first
+            if bundleId.hasPrefix("com.google.Chrome.canary") {
+                debugLog("Found Chrome Canary helper process with PID \(currentPid)")
+                return ("com.google.Chrome.canary", currentPid)
+            }
+            if bundleId.hasPrefix("com.google.Chrome.dev") {
+                debugLog("Found Chrome Dev helper process with PID \(currentPid)")
+                return ("com.google.Chrome.dev", currentPid)
+            }
             if bundleId.contains("Chrome") || app.localizedName?.contains("Chrome") == true {
                 debugLog("Found Chrome-related process, assuming com.google.Chrome with PID \(currentPid)")
                 return ("com.google.Chrome", currentPid)
@@ -2123,6 +2222,15 @@ func detectParentBrowser() -> (String, pid_t)? {
             }
             if bundleId.contains("Edge") {
                 return ("com.microsoft.edgemac", currentPid)
+            }
+            if bundleId.contains("Thorium") || bundleId.contains("org.chromium.Thorium") {
+                return ("org.chromium.Thorium", currentPid)
+            }
+            if bundleId.contains("perplexity") || bundleId.contains("comet") {
+                return ("ai.perplexity.comet", currentPid)
+            }
+            if bundleId.contains("openai") || bundleId.contains("atlas") {
+                return ("com.openai.atlas", currentPid)
             }
         }
         
