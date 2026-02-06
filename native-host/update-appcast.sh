@@ -12,7 +12,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-DMG_PATH="$PROJECT_DIR/dist/Tab Switcher.dmg"
+APP_BUNDLE="$PROJECT_DIR/dist/Tab Switcher.app"
+VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP_BUNDLE/Contents/Info.plist")
+DMG_PATH="$PROJECT_DIR/dist/Tab Switcher $VERSION.dmg"
 APPCAST_PATH="$PROJECT_DIR/docs/appcast.xml"
 SIGN_TOOL="${SIGN_TOOL:-$HOME/sparkle-tools/sign_update}"
 
@@ -28,9 +30,6 @@ if [ ! -f "$SIGN_TOOL" ]; then
     exit 1
 fi
 
-# Get version from Info.plist
-APP_BUNDLE="$PROJECT_DIR/dist/Tab Switcher.app"
-VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP_BUNDLE/Contents/Info.plist")
 echo "Version: $VERSION"
 
 # Get DMG file size
@@ -59,7 +58,7 @@ cat > "$APPCAST_PATH" << EOF
             <sparkle:version>$VERSION</sparkle:version>
             <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://tabswitcher.app/Tab%20Switcher.dmg"
+            <enclosure url="https://tabswitcher.app/Tab%20Switcher%20$VERSION.dmg"
                 type="application/octet-stream"
                 sparkle:edSignature="$SIGNATURE"
                 length="$FILE_SIZE" />

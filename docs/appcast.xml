@@ -7,10 +7,10 @@
             <sparkle:version>3.7.2</sparkle:version>
             <sparkle:shortVersionString>3.7.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://tabswitcher.app/Tab%20Switcher.dmg"
+            <enclosure url="https://tabswitcher.app/Tab%20Switcher%203.7.2.dmg"
                 type="application/octet-stream"
-                sparkle:edSignature="N9dM17ZRWlnRxk4kpajmJ6IFE7Escm9K8jzVdSH9MjPsmFqMZARb/K4/z1xnwHZ+kTtU86ZS4P70Xskhq9vVDw=="
-                length="2817503" />
+                sparkle:edSignature="jHtLfA2FAaxt4wtfiJnvPHHlTtvAExUD6FxhgXvAsk6oWhZU/oF0kZTXNu31yfvQ/crryrsJSZNcLRlOpbaGAg=="
+                length="2501739" />
         </item>
     </channel>
 </rss>

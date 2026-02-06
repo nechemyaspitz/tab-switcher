@@ -16,8 +16,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 APP_BUNDLE="$PROJECT_DIR/dist/Tab Switcher.app"
-DMG_PATH="$PROJECT_DIR/dist/Tab Switcher.dmg"
 BINARY_NAME="tab-switcher"
+VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP_BUNDLE/Contents/Info.plist")
+DMG_PATH="$PROJECT_DIR/dist/Tab Switcher $VERSION.dmg"
 
 SIGN=false
 NOTARIZE=false
@@ -93,22 +94,36 @@ if $SIGN; then
     codesign --verify --deep --strict "$APP_BUNDLE"
 fi
 
-echo "==> Creating DMG..."
+echo "==> Creating DMG (v$VERSION)..."
 rm -f "$DMG_PATH"
-hdiutil create -volname "Tab Switcher" -srcfolder "$APP_BUNDLE" \
-    -ov -format UDZO "$DMG_PATH"
+
+# Stage the app in a temp folder (create-dmg needs a source directory)
+STAGE_DIR=$(mktemp -d)
+cp -R "$APP_BUNDLE" "$STAGE_DIR/"
+
+CREATE_DMG_ARGS=(
+    --volname "Tab Switcher"
+    --volicon "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+    --background "$SCRIPT_DIR/dmg-background.png"
+    --window-pos 200 120
+    --window-size 660 400
+    --icon-size 160
+    --icon "Tab Switcher.app" 180 200
+    --hide-extension "Tab Switcher.app"
+    --app-drop-link 480 200
+    --no-internet-enable
+)
 
 if $SIGN; then
-    codesign --force --sign "$SIGNING_IDENTITY" "$DMG_PATH"
+    CREATE_DMG_ARGS+=(--codesign "$SIGNING_IDENTITY")
 fi
 
 if $NOTARIZE; then
-    echo "==> Notarizing DMG..."
-    xcrun notarytool submit "$DMG_PATH" --keychain-profile "$NOTARY_PROFILE" --wait
-
-    echo "==> Stapling notarization ticket..."
-    xcrun stapler staple "$DMG_PATH"
+    CREATE_DMG_ARGS+=(--notarize "$NOTARY_PROFILE")
 fi
+
+create-dmg "${CREATE_DMG_ARGS[@]}" "$DMG_PATH" "$STAGE_DIR/"
+rm -rf "$STAGE_DIR"
 
 echo "==> Done!"
 echo "   App bundle: $APP_BUNDLE"
