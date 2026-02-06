@@ -3,8 +3,9 @@ import AppKit
 import SwiftUI
 import Carbon.HIToolbox
 import ApplicationServices
+import Sparkle
 
-let APP_VERSION = "3.1"
+let APP_VERSION = "3.3"
 
 // MARK: - Browser Configuration
 
@@ -214,93 +215,38 @@ class BrowserConfigManager: ObservableObject {
     }
 }
 
-// MARK: - Update Checker
+// MARK: - Sparkle Updater
 
-struct VersionInfo: Codable {
-    struct AppInfo: Codable {
-        let version: String
-        let downloadUrl: String
-        let releaseNotes: String?
-    }
-    struct ExtensionInfo: Codable {
-        let version: String
-        let chromeWebStoreUrl: String?
-        let releaseNotes: String?
-    }
-    let app: AppInfo
-    let ext: ExtensionInfo?
+final class UpdaterViewModel: ObservableObject {
+    let updaterController: SPUStandardUpdaterController
+    @Published var canCheckForUpdates = false
 
-    enum CodingKeys: String, CodingKey {
-        case app
-        case ext = "extension"
-    }
-}
-
-class UpdateChecker: ObservableObject {
-    static let shared = UpdateChecker()
-
-    @Published var updateAvailable = false
-    @Published var latestVersion: String?
-    @Published var downloadUrl: String?
-    @Published var releaseNotes: String?
-    @Published var updateDismissed = false
-
-    private let versionURL = URL(string: "https://tabswitcher.app/version.json")!
-    private var timer: Timer?
-
-    func startChecking() {
-        check()
-        timer = Timer.scheduledTimer(withTimeInterval: 6 * 60 * 60, repeats: true) { [weak self] _ in
-            self?.check()
-        }
+    init() {
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: false,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
     }
 
-    private func check() {
-        debugLog("Checking for app updates...")
-        URLSession.shared.dataTask(with: versionURL) { [weak self] data, _, error in
-            guard let self = self, let data = data, error == nil else {
-                debugLog("Update check failed: \(error?.localizedDescription ?? "no data")")
-                return
-            }
-            do {
-                let info = try JSONDecoder().decode(VersionInfo.self, from: data)
-                let latest = info.app.version
-                let hasUpdate = self.compareVersions(APP_VERSION, latest) < 0
-                DispatchQueue.main.async {
-                    self.latestVersion = latest
-                    self.downloadUrl = info.app.downloadUrl
-                    self.releaseNotes = info.app.releaseNotes
-                    self.updateAvailable = hasUpdate
-                    if hasUpdate {
-                        self.updateDismissed = false
-                    }
-                    debugLog("App update check: current=\(APP_VERSION), latest=\(latest), updateAvailable=\(hasUpdate)")
-                }
-            } catch {
-                debugLog("Failed to decode version.json: \(error)")
-            }
-        }.resume()
+    func startUpdater() {
+        updaterController.startUpdater()
+        updaterController.updater.publisher(for: \.canCheckForUpdates)
+            .assign(to: &$canCheckForUpdates)
     }
 
-    private func compareVersions(_ a: String, _ b: String) -> Int {
-        let partsA = a.split(separator: ".").compactMap { Int($0) }
-        let partsB = b.split(separator: ".").compactMap { Int($0) }
-        let count = max(partsA.count, partsB.count)
-        for i in 0..<count {
-            let numA = i < partsA.count ? partsA[i] : 0
-            let numB = i < partsB.count ? partsB[i] : 0
-            if numA < numB { return -1 }
-            if numA > numB { return 1 }
-        }
-        return 0
+    func checkForUpdates() {
+        updaterController.checkForUpdates(nil)
     }
 }
+
+let updaterViewModel = UpdaterViewModel()
 
 // MARK: - Setup Window View
 
 struct SetupView: View {
     @ObservedObject var configManager = BrowserConfigManager.shared
-    @ObservedObject var updateChecker = UpdateChecker.shared
+    @ObservedObject var updater = updaterViewModel
 
     var body: some View {
         VStack(spacing: 0) {
@@ -318,37 +264,6 @@ struct SetupView: View {
             .padding(.top, 24)
             .padding(.bottom, 20)
 
-            // Update banner
-            if updateChecker.updateAvailable && !updateChecker.updateDismissed {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Update Available — Version \(updateChecker.latestVersion ?? "")")
-                            .font(.subheadline.bold())
-                        if let notes = updateChecker.releaseNotes {
-                            Text(notes)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    Spacer()
-                    if let urlString = updateChecker.downloadUrl, let url = URL(string: urlString) {
-                        Link("Download", destination: url)
-                            .font(.subheadline.bold())
-                    }
-                    Button(action: { updateChecker.updateDismissed = true }) {
-                        Image(systemName: "xmark")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(12)
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(8)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 8)
-            }
-
             Divider()
 
             // Browser list
@@ -361,9 +276,9 @@ struct SetupView: View {
                 }
             }
             .frame(maxHeight: 400)
-            
+
             Divider()
-            
+
             // Footer
             VStack(spacing: 6) {
                 HStack {
@@ -371,6 +286,10 @@ struct SetupView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Spacer()
+                    Button("Check for Updates...") {
+                        updater.checkForUpdates()
+                    }
+                    .disabled(!updater.canCheckForUpdates)
                     Button("Done") {
                         configManager.showingSetup = false
                     }
@@ -750,9 +669,9 @@ struct TabSwitcherView: View {
                     }
                     .padding(padding)
                 }
-                .onChange(of: state.selectedIndex) { newIndex in
+                .onChange(of: state.selectedIndex) {
                     withAnimation(.easeOut(duration: 0.1)) {
-                        proxy.scrollTo(newIndex, anchor: .center)
+                        proxy.scrollTo(state.selectedIndex, anchor: .center)
                     }
                 }
             }
@@ -1045,8 +964,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             setupMainMenu()
         }
         setupWindow?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+        NSApp.activate()
+        NSRunningApplication.current.activate()
     }
     
     func setupMainMenu() {
@@ -1056,6 +975,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "About Tab Switcher", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let checkForUpdatesItem = NSMenuItem(title: "Check for Updates...",
+            action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
+        checkForUpdatesItem.target = updaterViewModel.updaterController
+        appMenu.addItem(checkForUpdatesItem)
         appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(withTitle: "Hide Tab Switcher", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         let hideOthersItem = appMenu.addItem(withTitle: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
@@ -2018,8 +1941,10 @@ func main() {
         app.setActivationPolicy(.accessory)
     }
     
-    // Start update checker
-    UpdateChecker.shared.startChecking()
+    // Start Sparkle updater only when launched from Finder/Dock
+    if directLaunch {
+        updaterViewModel.startUpdater()
+    }
 
     debugLog("Starting NSApplication run loop")
     app.run()

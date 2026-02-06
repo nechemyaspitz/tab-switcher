@@ -1,8 +1,8 @@
 {
   "app": {
-    "version": "3.1",
+    "version": "3.3",
     "downloadUrl": "https://tabswitcher.app/Tab%20Switcher.dmg",
-    "releaseNotes": "Added update notifications"
+    "releaseNotes": "Auto-updates via Sparkle"
   },
   "extension": {
     "version": "3.1",

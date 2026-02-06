@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+    <channel>
+        <title>Tab Switcher Updates</title>
+        <item>
+            <title>Version 3.3</title>
+            <sparkle:version>3.3</sparkle:version>
+            <sparkle:shortVersionString>3.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://tabswitcher.app/Tab%20Switcher.dmg"
+                type="application/octet-stream"
+                sparkle:edSignature="g474yOItQEUvdNjPrLPC4EnlDKvDdkGj5KzpxQINp7reJz4Trrdxj5R4+yHLXgmPq7oUs60V0+QRhrOdvec7AQ=="
+                length="1507082" />
+        </item>
+    </channel>
+</rss>
