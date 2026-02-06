@@ -6,7 +6,7 @@ import ApplicationServices
 import Sparkle
 import UserNotifications
 
-let APP_VERSION = "3.7"
+let APP_VERSION = "3.7.1"
 
 // MARK: - Keyboard Shortcut Configuration
 
