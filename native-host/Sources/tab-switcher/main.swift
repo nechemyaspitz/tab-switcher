@@ -158,6 +158,22 @@ struct BrowserInfo: Identifiable, Codable {
         self.appName = appName ?? name
     }
 
+    // Custom Codable decoder: defaults appName to name if missing (backwards compat with v3.6 configs)
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        nativeMessagingPath = try container.decode(String.self, forKey: .nativeMessagingPath)
+        extensionId = try container.decodeIfPresent(String.self, forKey: .extensionId)
+        isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
+        combineAllWindows = try container.decodeIfPresent(Bool.self, forKey: .combineAllWindows) ?? false
+        appName = try container.decodeIfPresent(String.self, forKey: .appName) ?? name
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, nativeMessagingPath, extensionId, isEnabled, combineAllWindows, appName
+    }
+
     init(from definition: BrowserDefinition) {
         self.id = definition.id
         self.name = definition.name
