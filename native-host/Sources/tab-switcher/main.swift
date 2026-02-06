@@ -6,7 +6,7 @@ import ApplicationServices
 import Sparkle
 import UserNotifications
 
-let APP_VERSION = "3.7.2"
+let APP_VERSION = "3.7.3"
 
 // MARK: - Keyboard Shortcut Configuration
 
@@ -882,10 +882,11 @@ class ShortcutRecorderNSView: NSView {
         NSColor.separatorColor.setStroke()
         path.stroke()
 
-        let text = isRecording ? "Press shortcut..." : displayString
+        let text = isRecording ? "Press shortcut..." : (displayString.isEmpty ? "Click to set" : displayString)
+        let textColor: NSColor = isRecording ? .secondaryLabelColor : (displayString.isEmpty ? .tertiaryLabelColor : .labelColor)
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 13, weight: .medium),
-            .foregroundColor: isRecording ? NSColor.secondaryLabelColor : NSColor.labelColor
+            .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+            .foregroundColor: textColor
         ]
         let str = NSAttributedString(string: text, attributes: attrs)
         let textSize = str.size()
@@ -931,149 +932,287 @@ struct SetupView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(spacing: 8) {
-                Image(systemName: "rectangle.stack")
-                    .font(.system(size: 40))
-                    .foregroundColor(.accentColor)
-                Text("Tab Switcher Setup")
-                    .font(.title2.bold())
-                Text("Select browsers to use with Tab Switcher")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.top, 24)
-            .padding(.bottom, 20)
-
-            Divider()
-
-            // Browser list
             ScrollView {
-                VStack(spacing: 0) {
-                    ForEach(configManager.installedBrowsers) { browser in
-                        BrowserRowView(browser: browser)
-                        Divider().padding(.leading, 60)
-                    }
-                }
-            }
-            .frame(maxHeight: 350)
-
-            Divider()
-
-            // Keyboard Shortcuts
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Keyboard Shortcuts")
-                    .font(.headline)
-                    .padding(.top, 4)
-
-                HStack {
-                    Text("Switch Tabs")
-                        .frame(width: 100, alignment: .leading)
-                    ShortcutRecorderView(
-                        shortcut: $configManager.shortcuts.tabSwitch,
-                        onChange: { configManager.saveShortcuts() }
-                    )
-                    .frame(height: 28)
-                }
-
-                HStack {
-                    Text("Copy URL")
-                        .frame(width: 100, alignment: .leading)
-                    ShortcutRecorderView(
-                        shortcut: $configManager.shortcuts.copyUrl,
-                        onChange: { configManager.saveShortcuts() }
-                    )
-                    .frame(height: 28)
-                }
-
-                Button("Reset to Defaults") {
-                    configManager.shortcuts = .defaults
-                    configManager.saveShortcuts()
-                }
-                .font(.caption)
-                .buttonStyle(.link)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-
-            // Extension update instructions (shown when notified)
-            if configManager.showExtensionUpdateInstructions {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text("Extension Update Available")
-                            .font(.headline)
-                        Spacer()
-                        Button {
-                            configManager.showExtensionUpdateInstructions = false
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
+                VStack(spacing: 20) {
+                    // Header
+                    VStack(spacing: 4) {
+                        if let icon = NSApp.applicationIconImage {
+                            Image(nsImage: icon)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 64, height: 64)
+                                .padding(.bottom, 4)
                         }
-                        .buttonStyle(.plain)
+                        Text("Tab Switcher")
+                            .font(.system(size: 18, weight: .bold))
+                        Text("v\(APP_VERSION)")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
                     }
+                    .padding(.top, 8)
 
-                    Text("A new version of the Tab Switcher extension is available:")
-                        .font(.subheadline)
+                    // Browsers
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionHeader("Browsers")
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("1. Download the latest extension package")
-                        Text("2. Unzip and replace the old extension folder with the new one (same location you originally loaded it from)")
-                        Text("3. Open chrome://extensions in your browser")
-                        Text("4. Find Tab Switcher and click the reload icon to load the updated files")
-                    }
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                    HStack(spacing: 8) {
-                        Button("Download") {
-                            if let url = URL(string: "https://github.com/nechemyaspitz/tab-switcher/archive/refs/heads/master.zip") {
-                                NSWorkspace.shared.open(url)
+                        VStack(spacing: 0) {
+                            ForEach(Array(configManager.installedBrowsers.enumerated()), id: \.element.id) { index, browser in
+                                BrowserRowView(browser: browser)
+                                if index < configManager.installedBrowsers.count - 1 {
+                                    Divider().padding(.leading, 54)
+                                }
                             }
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
+                        .background(Color.secondary.opacity(0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
 
-                        Button("Copy chrome://extensions") {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString("chrome://extensions", forType: .string)
+                    // Keyboard Shortcuts
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionHeader("Keyboard Shortcuts")
+
+                        VStack(spacing: 1) {
+                            shortcutRow("Switch Tabs", shortcut: $configManager.shortcuts.tabSwitch)
+                            Divider().padding(.horizontal, 12)
+                            shortcutRow("Copy URL", shortcut: $configManager.shortcuts.copyUrl)
                         }
-                        .controlSize(.small)
+                        .background(Color.secondary.opacity(0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                        Button("Reset to Defaults") {
+                            configManager.shortcuts = .defaults
+                            configManager.saveShortcuts()
+                        }
+                        .font(.system(size: 11))
+                        .buttonStyle(.link)
+                        .padding(.leading, 4)
+                    }
+
+                    // Extension update notice
+                    if configManager.showExtensionUpdateInstructions {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.system(size: 12))
+                                Text("Extension Update Available")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Spacer()
+                                Button {
+                                    configManager.showExtensionUpdateInstructions = false
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("1. Download the latest extension package")
+                                Text("2. Unzip and replace the old extension folder")
+                                Text("3. Open chrome://extensions")
+                                Text("4. Click the reload icon on Tab Switcher")
+                            }
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+
+                            HStack(spacing: 8) {
+                                Button("Download") {
+                                    if let url = URL(string: "https://github.com/nechemyaspitz/tab-switcher/archive/refs/heads/master.zip") {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
+                                Button("Copy chrome://extensions") {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString("chrome://extensions", forType: .string)
+                                }
+                                .controlSize(.small)
+                            }
+                        }
+                        .padding(12)
+                        .background(Color.orange.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                 }
-                .padding(12)
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(8)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 16)
             }
-
-            Divider()
 
             // Footer
-            VStack(spacing: 6) {
-                HStack {
-                    Text("\(configManager.browsers.filter { $0.isEnabled }.count) browser(s) enabled")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Button("Check for Updates...") {
-                        updater.checkForUpdates()
-                    }
-                    .disabled(!updater.canCheckForUpdates)
-                    Button("Done") {
-                        configManager.showingSetup = false
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!configManager.browsers.contains { $0.isEnabled })
+            Divider()
+            HStack {
+                Button("Check for Updates...") {
+                    updater.checkForUpdates()
                 }
-                Text("Version \(APP_VERSION)")
-                    .font(.caption2)
-                    .foregroundColor(.secondary.opacity(0.6))
+                .font(.system(size: 12))
+                .disabled(!updater.canCheckForUpdates)
+                Spacer()
+                Button("Done") {
+                    configManager.showingSetup = false
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .disabled(!configManager.browsers.contains { $0.isEnabled })
             }
-            .padding()
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
         }
-        .frame(width: 450, height: 650)
+        .frame(width: 460, height: 580)
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(.system(size: 11, weight: .medium))
+            .foregroundColor(.secondary)
+            .tracking(0.5)
+            .padding(.leading, 4)
+    }
+
+    private func shortcutRow(_ label: String, shortcut: Binding<ShortcutConfig>) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 13))
+            Spacer()
+            ShortcutRecorderView(
+                shortcut: shortcut,
+                onChange: { configManager.saveShortcuts() }
+            )
+            .frame(width: 160, height: 28)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+}
+
+// MARK: - Browser Row View
+
+struct BrowserRowView: View {
+    let browser: BrowserInfo
+    @ObservedObject var configManager = BrowserConfigManager.shared
+    @State private var isExpanded = false
+    @State private var extensionId: String = ""
+
+    private var currentBrowser: BrowserInfo? {
+        configManager.browsers.first { $0.id == browser.id }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Main row — tap to expand/collapse
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    isExpanded.toggle()
+                    if isExpanded {
+                        extensionId = currentBrowser?.extensionId ?? ""
+                    }
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    if let icon = browser.icon {
+                        Image(nsImage: icon)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 32, height: 32)
+                    } else {
+                        Image(systemName: "globe")
+                            .font(.system(size: 22))
+                            .frame(width: 32, height: 32)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Text(browser.appName)
+                        .font(.system(size: 13))
+                        .foregroundColor(.primary)
+
+                    Spacer()
+
+                    if currentBrowser?.isEnabled == true {
+                        Text("Enabled")
+                            .font(.system(size: 11))
+                            .foregroundColor(.green)
+                    }
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // Expanded section
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 10) {
+                    Divider().padding(.leading, 42)
+
+                    if currentBrowser?.isEnabled == true {
+                        // Enabled state — show settings + disable
+                        if let current = currentBrowser {
+                            Toggle(isOn: Binding(
+                                get: { current.combineAllWindows },
+                                set: { configManager.setCombineWindows(id: browser.id, combine: $0) }
+                            )) {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text("Cycle through all windows")
+                                        .font(.system(size: 12))
+                                    Text("When off, only tabs from the active window are shown")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                        }
+
+                        Button("Disable Browser") {
+                            configManager.disableBrowser(id: browser.id)
+                        }
+                        .font(.system(size: 11))
+                        .foregroundColor(.red)
+                        .buttonStyle(.plain)
+                    } else {
+                        // Not enabled — show extension ID input
+                        Text("Paste the extension ID from \(browser.name)")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+
+                        Text("Extensions \u{2192} Developer Mode \u{2192} Copy ID")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary.opacity(0.7))
+
+                        HStack(spacing: 6) {
+                            PastableTextField(text: $extensionId, placeholder: "32-character extension ID")
+                                .frame(height: 22)
+                            Button("Enable") {
+                                if extensionId.count == 32 {
+                                    configManager.enableBrowser(id: browser.id, extensionId: extensionId)
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .disabled(extensionId.count != 32)
+                        }
+
+                        if !extensionId.isEmpty && extensionId.count != 32 {
+                            Text("\(extensionId.count)/32 characters")
+                                .font(.system(size: 10))
+                                .foregroundColor(.red)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 10)
+                .transition(.opacity)
+            }
+        }
+        .onAppear {
+            extensionId = currentBrowser?.extensionId ?? ""
+        }
     }
 }
 
@@ -1138,137 +1277,7 @@ struct PastableTextField: NSViewRepresentable {
     }
 }
 
-struct BrowserRowView: View {
-    let browser: BrowserInfo
-    @ObservedObject var configManager = BrowserConfigManager.shared
-    @State private var extensionId: String = ""
-    @State private var isExpanded = false
-    
-    var currentBrowser: BrowserInfo? {
-        configManager.browsers.first { $0.id == browser.id }
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Main row
-            HStack(spacing: 12) {
-                // Browser icon
-                if let icon = browser.icon {
-                    Image(nsImage: icon)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 40, height: 40)
-                } else {
-                    Image(systemName: "globe")
-                        .font(.system(size: 30))
-                        .frame(width: 40, height: 40)
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(browser.name)
-                        .font(.headline)
-                    
-                    if let current = currentBrowser, current.isEnabled, let extId = current.extensionId {
-                        Text("Enabled • \(extId.prefix(8))...")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                    } else {
-                        Text("Not configured")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Spacer()
-                
-                if currentBrowser?.isEnabled == true {
-                    Button("Disable") {
-                        configManager.disableBrowser(id: browser.id)
-                    }
-                    .buttonStyle(.bordered)
-                } else {
-                    Button("Enable") {
-                        isExpanded = true
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            
-            // Settings for enabled browsers
-            if let current = currentBrowser, current.isEnabled {
-                VStack(alignment: .leading, spacing: 8) {
-                    Divider()
-                    
-                    Toggle(isOn: Binding(
-                        get: { current.combineAllWindows },
-                        set: { configManager.setCombineWindows(id: browser.id, combine: $0) }
-                    )) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Cycle through all windows")
-                                .font(.subheadline)
-                            Text("When off, only tabs from the active window are shown")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .toggleStyle(.switch)
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
-            }
-            
-            // Expanded extension ID input
-            if isExpanded {
-                VStack(alignment: .leading, spacing: 12) {
-                    Divider()
-                    
-                    Text("Enter Extension ID")
-                        .font(.subheadline.bold())
-                    
-                    Text("Find it in \(browser.name): Extensions → Developer Mode → Copy ID")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    HStack(spacing: 8) {
-                        PastableTextField(text: $extensionId, placeholder: "Paste extension ID here (32 chars)")
-                            .frame(height: 24)
-                        
-                        Button("Cancel") {
-                            extensionId = ""
-                            isExpanded = false
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        
-                        Button("Save") {
-                            if extensionId.count == 32 {
-                                configManager.enableBrowser(id: browser.id, extensionId: extensionId)
-                                isExpanded = false
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                        .disabled(extensionId.count != 32)
-                    }
-                    
-                    if !extensionId.isEmpty && extensionId.count != 32 {
-                        Text("Extension ID must be exactly 32 characters (\(extensionId.count)/32)")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
-                .background(Color.secondary.opacity(0.05))
-            }
-        }
-        .onAppear {
-            extensionId = currentBrowser?.extensionId ?? ""
-        }
-    }
-}
+// BrowserRowView removed — replaced by BrowserTileView in SetupView
 
 // MARK: - Tab Data Model
 
@@ -1853,16 +1862,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if setupWindow == nil {
             let setupView = SetupView()
             setupWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 450, height: 650),
-                styleMask: [.titled, .closable],
+                contentRect: NSRect(x: 0, y: 0, width: 460, height: 580),
+                styleMask: [.titled, .closable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
-            setupWindow?.title = "Tab Switcher Setup"
+            setupWindow?.title = "Tab Switcher"
+            setupWindow?.titlebarAppearsTransparent = true
             setupWindow?.contentView = NSHostingView(rootView: setupView)
             setupWindow?.center()
             setupWindow?.isReleasedWhenClosed = false
-            
+
             // Handle window close
             setupWindow?.delegate = self
         }
