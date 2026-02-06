@@ -4,8 +4,9 @@ import SwiftUI
 import Carbon.HIToolbox
 import ApplicationServices
 import Sparkle
+import UserNotifications
 
-let APP_VERSION = "3.5"
+let APP_VERSION = "3.6"
 
 // MARK: - Keyboard Shortcut Configuration
 
@@ -224,6 +225,7 @@ class BrowserConfigManager: ObservableObject {
     @Published var browsers: [BrowserInfo] = []
     @Published var showingSetup = false
     @Published var shortcuts: ShortcutsConfiguration = .defaults
+    @Published var showExtensionUpdateInstructions = false
 
     private let configURL: URL = {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -393,6 +395,324 @@ final class UpdaterViewModel: ObservableObject {
 }
 
 let updaterViewModel = UpdaterViewModel()
+
+// MARK: - Background Update Checker
+
+class BackgroundUpdateChecker: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
+    static let shared = BackgroundUpdateChecker()
+
+    static let appUpdateCategory = "APP_UPDATE"
+    static let extensionUpdateCategory = "EXTENSION_UPDATE"
+    static let updateAction = "UPDATE_ACTION"
+
+    var skipAppUpdateNotifications = false
+
+    private var isUpdateCheckLeader = false
+    private var checkTimer: Timer?
+    private var connectedExtensionVersion: String?
+
+    private let updateCheckerLockFile: URL = {
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".tabswitcher_updatechecker.lock")
+    }()
+
+    private let notifiedVersionsURL: URL = {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let configDir = appSupport.appendingPathComponent("TabSwitcher")
+        try? FileManager.default.createDirectory(at: configDir, withIntermediateDirectories: true)
+        return configDir.appendingPathComponent("notified_versions.json")
+    }()
+
+    struct NotifiedVersions: Codable {
+        var app: String?
+        var ext: String?
+    }
+
+    struct VersionInfo: Codable {
+        struct AppVersion: Codable {
+            let version: String
+            let downloadUrl: String
+            let releaseNotes: String
+        }
+        struct ExtVersion: Codable {
+            let version: String
+            let chromeWebStoreUrl: String?
+            let releaseNotes: String
+        }
+        let app: AppVersion
+        let `extension`: ExtVersion
+    }
+
+    // MARK: - Setup
+
+    func setupNotifications() {
+        let center = UNUserNotificationCenter.current()
+        center.delegate = self
+
+        center.requestAuthorization(options: [.alert, .sound]) { granted, error in
+            debugLog("Notification permission: \(granted), error: \(error?.localizedDescription ?? "none")")
+        }
+
+        let updateAction = UNNotificationAction(
+            identifier: BackgroundUpdateChecker.updateAction,
+            title: "View Update",
+            options: [.foreground]
+        )
+
+        let appCategory = UNNotificationCategory(
+            identifier: BackgroundUpdateChecker.appUpdateCategory,
+            actions: [updateAction],
+            intentIdentifiers: []
+        )
+
+        let extCategory = UNNotificationCategory(
+            identifier: BackgroundUpdateChecker.extensionUpdateCategory,
+            actions: [updateAction],
+            intentIdentifiers: []
+        )
+
+        center.setNotificationCategories([appCategory, extCategory])
+    }
+
+    func setExtensionVersion(_ version: String) {
+        connectedExtensionVersion = version
+    }
+
+    // MARK: - Leader Election
+
+    func tryBecomeUpdateCheckLeader() -> Bool {
+        let myPid = getpid()
+
+        if FileManager.default.fileExists(atPath: updateCheckerLockFile.path) {
+            if let contents = try? String(contentsOf: updateCheckerLockFile, encoding: .utf8),
+               let existingPid = Int32(contents.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                if kill(existingPid, 0) == 0 {
+                    if let app = NSRunningApplication(processIdentifier: existingPid),
+                       app.bundleIdentifier == Bundle.main.bundleIdentifier {
+                        return false
+                    }
+                }
+                try? FileManager.default.removeItem(at: updateCheckerLockFile)
+            } else {
+                try? FileManager.default.removeItem(at: updateCheckerLockFile)
+            }
+        }
+
+        do {
+            try String(myPid).write(to: updateCheckerLockFile, atomically: true, encoding: .utf8)
+            debugLog("We (PID \(myPid)) are the update check leader")
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    func cleanupUpdateCheckLock() {
+        if isUpdateCheckLeader {
+            try? FileManager.default.removeItem(at: updateCheckerLockFile)
+            DistributedNotificationCenter.default().postNotificationName(
+                NSNotification.Name("com.tabswitcher.updateCheckerResigned"),
+                object: nil, userInfo: nil, deliverImmediately: true
+            )
+        }
+    }
+
+    func tryTakeOverLeadership() {
+        guard !isUpdateCheckLeader else { return }
+        if tryBecomeUpdateCheckLeader() {
+            isUpdateCheckLeader = true
+            debugLog("Took over as update check leader")
+            startPeriodicChecks()
+        }
+    }
+
+    // MARK: - Periodic Checking
+
+    func startPeriodicChecks() {
+        isUpdateCheckLeader = tryBecomeUpdateCheckLeader()
+        guard isUpdateCheckLeader else {
+            debugLog("Not the update check leader, skipping periodic checks")
+            return
+        }
+
+        // First check after a short delay (give time for extension to register)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in
+            self?.checkForUpdates()
+        }
+
+        // Then every 4 hours
+        checkTimer = Timer.scheduledTimer(withTimeInterval: 4 * 60 * 60, repeats: true) { [weak self] _ in
+            self?.checkForUpdates()
+        }
+    }
+
+    private func checkForUpdates() {
+        guard isUpdateCheckLeader else { return }
+        guard let url = URL(string: "https://tabswitcher.app/version.json") else { return }
+
+        let task = URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
+            guard let self = self, let data = data, error == nil else {
+                debugLog("Version check failed: \(error?.localizedDescription ?? "unknown")")
+                return
+            }
+            do {
+                let info = try JSONDecoder().decode(VersionInfo.self, from: data)
+                self.processVersionInfo(info)
+            } catch {
+                debugLog("Failed to decode version.json: \(error)")
+            }
+        }
+        task.resume()
+    }
+
+    private func processVersionInfo(_ info: VersionInfo) {
+        let notified = loadNotifiedVersions()
+
+        // Check app version
+        if !skipAppUpdateNotifications && isNewerVersion(info.app.version, than: APP_VERSION) {
+            if notified.app != info.app.version {
+                sendAppUpdateNotification(newVersion: info.app.version, releaseNotes: info.app.releaseNotes)
+                saveNotifiedVersions(NotifiedVersions(app: info.app.version, ext: notified.ext))
+            }
+        }
+
+        // Check extension version
+        if let extVersion = connectedExtensionVersion,
+           isNewerVersion(info.extension.version, than: extVersion) {
+            if notified.ext != info.extension.version {
+                sendExtensionUpdateNotification(newVersion: info.extension.version, currentVersion: extVersion)
+                saveNotifiedVersions(NotifiedVersions(app: notified.app, ext: info.extension.version))
+            }
+        }
+    }
+
+    private func isNewerVersion(_ remote: String, than local: String) -> Bool {
+        let remoteParts = remote.split(separator: ".").compactMap { Int($0) }
+        let localParts = local.split(separator: ".").compactMap { Int($0) }
+        for i in 0..<max(remoteParts.count, localParts.count) {
+            let r = i < remoteParts.count ? remoteParts[i] : 0
+            let l = i < localParts.count ? localParts[i] : 0
+            if r > l { return true }
+            if r < l { return false }
+        }
+        return false
+    }
+
+    // MARK: - Persistence
+
+    private func loadNotifiedVersions() -> NotifiedVersions {
+        guard let data = try? Data(contentsOf: notifiedVersionsURL),
+              let versions = try? JSONDecoder().decode(NotifiedVersions.self, from: data) else {
+            return NotifiedVersions()
+        }
+        return versions
+    }
+
+    private func saveNotifiedVersions(_ versions: NotifiedVersions) {
+        if let data = try? JSONEncoder().encode(versions) {
+            try? data.write(to: notifiedVersionsURL)
+        }
+    }
+
+    // MARK: - Send Notifications
+
+    private func sendAppUpdateNotification(newVersion: String, releaseNotes: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "Tab Switcher Update Available"
+        content.body = "Version \(newVersion) is available (you have \(APP_VERSION)). \(releaseNotes)"
+        content.sound = .default
+        content.categoryIdentifier = BackgroundUpdateChecker.appUpdateCategory
+        content.userInfo = ["type": "app", "version": newVersion]
+
+        let request = UNNotificationRequest(identifier: "app-update-\(newVersion)", content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                debugLog("Failed to send app update notification: \(error)")
+            } else {
+                debugLog("Sent app update notification for \(newVersion)")
+            }
+        }
+    }
+
+    private func sendExtensionUpdateNotification(newVersion: String, currentVersion: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "Tab Switcher Extension Update"
+        content.body = "Extension v\(newVersion) is available (you have v\(currentVersion)). Click to see how to update."
+        content.sound = .default
+        content.categoryIdentifier = BackgroundUpdateChecker.extensionUpdateCategory
+        content.userInfo = ["type": "extension", "version": newVersion]
+
+        let request = UNNotificationRequest(identifier: "ext-update-\(newVersion)", content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                debugLog("Failed to send extension update notification: \(error)")
+            } else {
+                debugLog("Sent extension update notification for \(newVersion)")
+            }
+        }
+    }
+
+    // MARK: - UNUserNotificationCenterDelegate
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        let userInfo = response.notification.request.content.userInfo
+        let type = userInfo["type"] as? String
+
+        if type == "app" {
+            handleAppUpdateClick()
+        } else if type == "extension" {
+            handleExtensionUpdateClick()
+        }
+        completionHandler()
+    }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .sound])
+    }
+
+    private func handleAppUpdateClick() {
+        debugLog("User clicked app update notification")
+
+        // Post distributed notification for any directly-launched instance to handle
+        DistributedNotificationCenter.default().postNotificationName(
+            NSNotification.Name("com.tabswitcher.triggerAppUpdate"),
+            object: nil, userInfo: nil, deliverImmediately: true
+        )
+
+        // Check if a directly-launched instance exists
+        let hasDirectInstance = NSWorkspace.shared.runningApplications.contains {
+            $0.bundleIdentifier == Bundle.main.bundleIdentifier && $0.activationPolicy == .regular
+        }
+
+        if !hasDirectInstance {
+            // No direct instance — handle it ourselves
+            DispatchQueue.main.async {
+                NSApp.setActivationPolicy(.regular)
+                allowConfigUI = true
+                BrowserConfigManager.shared.showingSetup = true
+                updaterViewModel.startUpdater()
+                NSApp.activate(ignoringOtherApps: true)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    updaterViewModel.checkForUpdates()
+                }
+            }
+        }
+    }
+
+    private func handleExtensionUpdateClick() {
+        debugLog("User clicked extension update notification")
+
+        DistributedNotificationCenter.default().postNotificationName(
+            NSNotification.Name("com.tabswitcher.showExtensionUpdate"),
+            object: nil, userInfo: nil, deliverImmediately: true
+        )
+
+        DispatchQueue.main.async {
+            allowConfigUI = true
+            BrowserConfigManager.shared.showingSetup = true
+            BrowserConfigManager.shared.showExtensionUpdateInstructions = true
+        }
+    }
+}
 
 // MARK: - Shortcut Recorder
 
@@ -569,6 +889,58 @@ struct SetupView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
+
+            // Extension update instructions (shown when notified)
+            if configManager.showExtensionUpdateInstructions {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text("Extension Update Available")
+                            .font(.headline)
+                        Spacer()
+                        Button {
+                            configManager.showExtensionUpdateInstructions = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Text("A new version of the Tab Switcher extension is available:")
+                        .font(.subheadline)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("1. Download the latest extension package")
+                        Text("2. Unzip and replace the old extension folder with the new one (same location you originally loaded it from)")
+                        Text("3. Open chrome://extensions in your browser")
+                        Text("4. Find Tab Switcher and click the reload icon to load the updated files")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                    HStack(spacing: 8) {
+                        Button("Download") {
+                            if let url = URL(string: "https://github.com/nechemyaspitz/tab-switcher/archive/refs/heads/master.zip") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+
+                        Button("Copy chrome://extensions") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString("chrome://extensions", forType: .string)
+                        }
+                        .controlSize(.small)
+                    }
+                }
+                .padding(12)
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(8)
+                .padding(.horizontal, 8)
+            }
 
             Divider()
 
@@ -1233,6 +1605,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             setupMainMenu()
         }
         debugLog("App delegate launched, launchedDirectly=\(launchedDirectly)")
+
+        // Setup macOS system notifications for background update checking
+        BackgroundUpdateChecker.shared.setupNotifications()
         
         // Create the floating window for tab switching UI
         window = TabSwitcherWindow()
@@ -1448,8 +1823,9 @@ extension AppDelegate {
     }
     
     func applicationWillTerminate(_ notification: Notification) {
-        debugLog("Application will terminate - cleaning up event tap lock")
+        debugLog("Application will terminate - cleaning up locks")
         cleanupEventTapLock()
+        BackgroundUpdateChecker.shared.cleanupUpdateCheckLock()
     }
 }
 
@@ -1568,6 +1944,7 @@ func handleMessage(_ message: [String: Any]) {
         // Only use this if we couldn't auto-detect, or if it matches a known browser
         if let extVersion = message["extensionVersion"] as? String {
             debugLog("Extension version: \(extVersion)")
+            BackgroundUpdateChecker.shared.setExtensionVersion(extVersion)
         }
         if let bundleId = message["bundleId"] as? String {
             if ownerBrowserBundleId == nil {
@@ -1953,6 +2330,37 @@ func setupNotificationListener() {
     center.addObserver(forName: NSNotification.Name(shortcutsChangedNotificationName), object: nil, queue: .main) { _ in
         debugLog("Received shortcuts-changed notification, reloading")
         BrowserConfigManager.shared.loadShortcuts()
+    }
+
+    // Listen for app update trigger (from notification click)
+    center.addObserver(forName: NSNotification.Name("com.tabswitcher.triggerAppUpdate"), object: nil, queue: .main) { _ in
+        debugLog("Received triggerAppUpdate notification")
+        if let delegate = NSApp.delegate as? AppDelegate, delegate.launchedDirectly {
+            allowConfigUI = true
+            BrowserConfigManager.shared.showingSetup = true
+            NSApp.activate(ignoringOtherApps: true)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                updaterViewModel.checkForUpdates()
+            }
+        }
+    }
+
+    // Listen for extension update display request (from notification click)
+    center.addObserver(forName: NSNotification.Name("com.tabswitcher.showExtensionUpdate"), object: nil, queue: .main) { _ in
+        debugLog("Received showExtensionUpdate notification")
+        DispatchQueue.main.async {
+            allowConfigUI = true
+            BrowserConfigManager.shared.showingSetup = true
+            BrowserConfigManager.shared.showExtensionUpdateInstructions = true
+        }
+    }
+
+    // Listen for update checker leader resignation
+    center.addObserver(forName: NSNotification.Name("com.tabswitcher.updateCheckerResigned"), object: nil, queue: .main) { _ in
+        debugLog("Update checker leader resigned, attempting to take over")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            BackgroundUpdateChecker.shared.tryTakeOverLeadership()
+        }
     }
 
     debugLog("Notification listener setup complete (PID \(myProcessId), browser=\(ownerBrowserBundleId ?? "unknown"))")
@@ -2367,10 +2775,12 @@ func main() {
     // Setup cleanup on exit using signal handlers
     signal(SIGTERM) { _ in
         cleanupEventTapLock()
+        BackgroundUpdateChecker.shared.cleanupUpdateCheckLock()
         exit(0)
     }
     signal(SIGINT) { _ in
         cleanupEventTapLock()
+        BackgroundUpdateChecker.shared.cleanupUpdateCheckLock()
         exit(0)
     }
     
@@ -2424,7 +2834,11 @@ func main() {
     // Start Sparkle updater only when launched from Finder/Dock
     if directLaunch {
         updaterViewModel.startUpdater()
+        BackgroundUpdateChecker.shared.skipAppUpdateNotifications = true
     }
+
+    // Start background update checker (leader election ensures only one instance checks)
+    BackgroundUpdateChecker.shared.startPeriodicChecks()
 
     debugLog("Starting NSApplication run loop")
     app.run()
