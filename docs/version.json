@@ -1,12 +1,12 @@
 {
   "app": {
-    "version": "3.6",
+    "version": "3.7",
     "downloadUrl": "https://tabswitcher.app/Tab%20Switcher.dmg",
-    "releaseNotes": "Background update notifications for app and extension"
+    "releaseNotes": "Remote browser config, support for Chrome Dev/Canary, Comet, Atlas, Thorium"
   },
   "extension": {
-    "version": "3.6",
+    "version": "3.7",
     "chromeWebStoreUrl": null,
-    "releaseNotes": "Background update notifications support"
+    "releaseNotes": "Version sync with app"
   }
 }
