@@ -317,6 +317,67 @@
             line-height: 1.6;
         }
         
+        /* Showcase */
+        .showcase {
+            padding: 100px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .showcase-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: center;
+        }
+
+        .showcase-text h2 {
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: clamp(1.75rem, 4vw, 2.25rem);
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+
+        .showcase-text p {
+            color: var(--text-muted);
+            font-size: 0.9375rem;
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+
+        .showcase-text .shortcut-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
+
+        .showcase-image {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .showcase-image img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        @media (max-width: 640px) {
+            .showcase-grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+        }
+
         /* Download */
         .download {
             padding: 120px 0;
@@ -630,21 +691,20 @@
                         <span class="key">⌃ Ctrl</span>
                         <span>+</span>
                         <span class="key">Tab</span>
+                        <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 4px;">switch tabs</span>
                     </span>
                     <span class="keyboard-hint">
-                        <span class="key">⌘ Cmd</span>
+                        <span class="key">⌘</span>
                         <span>+</span>
-                        <span class="key">⇧ Shift</span>
+                        <span class="key">⇧</span>
                         <span>+</span>
                         <span class="key">C</span>
+                        <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 4px;">copy URL</span>
                     </span>
                 </div>
             </div>
             <div class="hero-image">
                 <img src="screenshot.png" alt="Tab Switcher in action">
-            </div>
-            <div class="hero-image" style="margin-top: 24px;">
-                <img src="copy-url-screenshot.png" alt="Copy URL to clipboard with a quick shortcut">
             </div>
         </div>
     </section>
@@ -701,6 +761,22 @@
         </div>
     </section>
     
+    <section class="showcase">
+        <div class="container">
+            <div class="showcase-grid">
+                <div class="showcase-text">
+                    <h2>Copy any URL, <em>instantly</em></h2>
+                    <p>One shortcut to copy the current tab's URL to your clipboard. A quick toast confirms it's done — no clicking, no address bar.</p>
+                    <p>All keyboard shortcuts are fully customizable from the app settings.</p>
+                    <span class="shortcut-label">Default: ⌘ + ⇧ + C</span>
+                </div>
+                <div class="showcase-image">
+                    <img src="copy-url-screenshot.png" alt="Copy URL toast notification showing the copied URL">
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="download" id="download">
         <div class="container">
             <h2>Get Tab Switcher</h2>
