@@ -5,7 +5,7 @@ import Carbon.HIToolbox
 import ApplicationServices
 import Sparkle
 
-let APP_VERSION = "3.3"
+let APP_VERSION = "3.4"
 
 // MARK: - Browser Configuration
 

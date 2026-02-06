@@ -3,14 +3,14 @@
     <channel>
         <title>Tab Switcher Updates</title>
         <item>
-            <title>Version 3.3</title>
-            <sparkle:version>3.3</sparkle:version>
-            <sparkle:shortVersionString>3.3</sparkle:shortVersionString>
+            <title>Version 3.4</title>
+            <sparkle:version>3.4</sparkle:version>
+            <sparkle:shortVersionString>3.4</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure url="https://tabswitcher.app/Tab%20Switcher.dmg"
                 type="application/octet-stream"
-                sparkle:edSignature="g474yOItQEUvdNjPrLPC4EnlDKvDdkGj5KzpxQINp7reJz4Trrdxj5R4+yHLXgmPq7oUs60V0+QRhrOdvec7AQ=="
-                length="1507082" />
+                sparkle:edSignature="jsNCUMapWRQJFYGQ9PXOmHm31ZDxyMaffWJIUks1tbXhWZRgu6RjN3iG9hb8P/Xpm3tHSMiKr6SdkbsLrybdDw=="
+                length="1506983" />
         </item>
     </channel>
 </rss>
