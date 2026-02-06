@@ -4,6 +4,8 @@ import SwiftUI
 import Carbon.HIToolbox
 import ApplicationServices
 
+let APP_VERSION = "3.1"
+
 // MARK: - Browser Configuration
 
 struct BrowserInfo: Identifiable, Codable {
@@ -212,11 +214,94 @@ class BrowserConfigManager: ObservableObject {
     }
 }
 
+// MARK: - Update Checker
+
+struct VersionInfo: Codable {
+    struct AppInfo: Codable {
+        let version: String
+        let downloadUrl: String
+        let releaseNotes: String?
+    }
+    struct ExtensionInfo: Codable {
+        let version: String
+        let chromeWebStoreUrl: String?
+        let releaseNotes: String?
+    }
+    let app: AppInfo
+    let ext: ExtensionInfo?
+
+    enum CodingKeys: String, CodingKey {
+        case app
+        case ext = "extension"
+    }
+}
+
+class UpdateChecker: ObservableObject {
+    static let shared = UpdateChecker()
+
+    @Published var updateAvailable = false
+    @Published var latestVersion: String?
+    @Published var downloadUrl: String?
+    @Published var releaseNotes: String?
+    @Published var updateDismissed = false
+
+    private let versionURL = URL(string: "https://tabswitcher.app/version.json")!
+    private var timer: Timer?
+
+    func startChecking() {
+        check()
+        timer = Timer.scheduledTimer(withTimeInterval: 6 * 60 * 60, repeats: true) { [weak self] _ in
+            self?.check()
+        }
+    }
+
+    private func check() {
+        debugLog("Checking for app updates...")
+        URLSession.shared.dataTask(with: versionURL) { [weak self] data, _, error in
+            guard let self = self, let data = data, error == nil else {
+                debugLog("Update check failed: \(error?.localizedDescription ?? "no data")")
+                return
+            }
+            do {
+                let info = try JSONDecoder().decode(VersionInfo.self, from: data)
+                let latest = info.app.version
+                let hasUpdate = self.compareVersions(APP_VERSION, latest) < 0
+                DispatchQueue.main.async {
+                    self.latestVersion = latest
+                    self.downloadUrl = info.app.downloadUrl
+                    self.releaseNotes = info.app.releaseNotes
+                    self.updateAvailable = hasUpdate
+                    if hasUpdate {
+                        self.updateDismissed = false
+                    }
+                    debugLog("App update check: current=\(APP_VERSION), latest=\(latest), updateAvailable=\(hasUpdate)")
+                }
+            } catch {
+                debugLog("Failed to decode version.json: \(error)")
+            }
+        }.resume()
+    }
+
+    private func compareVersions(_ a: String, _ b: String) -> Int {
+        let partsA = a.split(separator: ".").compactMap { Int($0) }
+        let partsB = b.split(separator: ".").compactMap { Int($0) }
+        let count = max(partsA.count, partsB.count)
+        for i in 0..<count {
+            let numA = i < partsA.count ? partsA[i] : 0
+            let numB = i < partsB.count ? partsB[i] : 0
+            if numA < numB { return -1 }
+            if numA > numB { return 1 }
+        }
+        return 0
+    }
+}
+
 // MARK: - Setup Window View
 
 struct SetupView: View {
     @ObservedObject var configManager = BrowserConfigManager.shared
-    
+    @ObservedObject var updateChecker = UpdateChecker.shared
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -232,9 +317,40 @@ struct SetupView: View {
             }
             .padding(.top, 24)
             .padding(.bottom, 20)
-            
+
+            // Update banner
+            if updateChecker.updateAvailable && !updateChecker.updateDismissed {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Update Available — Version \(updateChecker.latestVersion ?? "")")
+                            .font(.subheadline.bold())
+                        if let notes = updateChecker.releaseNotes {
+                            Text(notes)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    Spacer()
+                    if let urlString = updateChecker.downloadUrl, let url = URL(string: urlString) {
+                        Link("Download", destination: url)
+                            .font(.subheadline.bold())
+                    }
+                    Button(action: { updateChecker.updateDismissed = true }) {
+                        Image(systemName: "xmark")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(12)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            }
+
             Divider()
-            
+
             // Browser list
             ScrollView {
                 VStack(spacing: 0) {
@@ -249,16 +365,21 @@ struct SetupView: View {
             Divider()
             
             // Footer
-            HStack {
-                Text("\(configManager.browsers.filter { $0.isEnabled }.count) browser(s) enabled")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-                Button("Done") {
-                    configManager.showingSetup = false
+            VStack(spacing: 6) {
+                HStack {
+                    Text("\(configManager.browsers.filter { $0.isEnabled }.count) browser(s) enabled")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button("Done") {
+                        configManager.showingSetup = false
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!configManager.browsers.contains { $0.isEnabled })
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(!configManager.browsers.contains { $0.isEnabled })
+                Text("Version \(APP_VERSION)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary.opacity(0.6))
             }
             .padding()
         }
@@ -1094,6 +1215,9 @@ func handleMessage(_ message: [String: Any]) {
     case "register":
         // Extension tells us which browser it's running in
         // Only use this if we couldn't auto-detect, or if it matches a known browser
+        if let extVersion = message["extensionVersion"] as? String {
+            debugLog("Extension version: \(extVersion)")
+        }
         if let bundleId = message["bundleId"] as? String {
             if ownerBrowserBundleId == nil {
                 ownerBrowserBundleId = bundleId
@@ -1894,6 +2018,9 @@ func main() {
         app.setActivationPolicy(.accessory)
     }
     
+    // Start update checker
+    UpdateChecker.shared.startChecking()
+
     debugLog("Starting NSApplication run loop")
     app.run()
 }

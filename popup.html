@@ -136,6 +136,40 @@
     .help-link:hover {
       color: #fafafa;
     }
+
+    .update-banner {
+      display: none;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .update-banner.cws {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+    }
+
+    .update-banner.update {
+      background: rgba(234, 179, 8, 0.1);
+      border: 1px solid rgba(234, 179, 8, 0.2);
+      color: #facc15;
+    }
+
+    .update-banner a {
+      color: inherit;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    .version-label {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 10px;
+      color: #52525b;
+    }
   </style>
 </head>
 <body>
@@ -149,6 +183,8 @@
     <div class="status-text" id="status-text">Checking...</div>
   </div>
   
+  <div class="update-banner" id="update-banner"></div>
+
   <div class="shortcut">
     <div class="shortcut-label">Keyboard shortcut</div>
     <div class="keys">
@@ -159,7 +195,9 @@
   </div>
   
   <a href="https://tabswitcher.app/setup" target="_blank" class="help-link">Setup help →</a>
-  
+
+  <div class="version-label" id="version-label"></div>
+
   <script src="popup.js"></script>
 </body>
 </html>

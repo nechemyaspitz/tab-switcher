@@ -1,0 +1,12 @@
+{
+  "app": {
+    "version": "3.1",
+    "downloadUrl": "https://tabswitcher.app/Tab%20Switcher.dmg",
+    "releaseNotes": "Added update notifications"
+  },
+  "extension": {
+    "version": "3.1",
+    "chromeWebStoreUrl": null,
+    "releaseNotes": "Added update notifications"
+  }
+}

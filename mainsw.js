@@ -3,6 +3,10 @@
  * Provides macOS-style Cmd+Tab switching for Chrome tabs
  */
 
+// Version checking
+var EXTENSION_VERSION = chrome.runtime.getManifest().version;
+var VERSION_CHECK_URL = "https://tabswitcher.app/version.json";
+
 // MRU (Most Recently Used) tab tracking
 var mru = [];
 var initialized = false;
@@ -123,6 +127,13 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 		return true;
 	}
 	
+	if (request.action === "get_version_info") {
+		chrome.storage.local.get(["versionInfo"], function(result) {
+			sendResponse(result.versionInfo || null);
+		});
+		return true;
+	}
+
 	if (request.action === "ping_native_host") {
 		// Clear any previous pending ping
 		if (pingTimeout) {
@@ -176,6 +187,41 @@ chrome.runtime.onStartup.addListener(function () {
 	log("Extension startup");
 	initialize();
 });
+
+// ============================================
+// Version Checking
+// ============================================
+
+var VERSION_CHECK_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
+
+function checkForUpdates() {
+	log("Checking for updates...");
+	fetch(VERSION_CHECK_URL, { cache: "no-cache" })
+		.then(function(response) { return response.json(); })
+		.then(function(data) {
+			var isManualInstall = chrome.runtime.getManifest().update_url === undefined;
+			var versionInfo = {
+				currentVersion: EXTENSION_VERSION,
+				latestExtensionVersion: data.extension ? data.extension.version : null,
+				latestExtensionNotes: data.extension ? data.extension.releaseNotes : null,
+				chromeWebStoreUrl: data.extension ? data.extension.chromeWebStoreUrl : null,
+				latestAppVersion: data.app ? data.app.version : null,
+				latestAppNotes: data.app ? data.app.releaseNotes : null,
+				appDownloadUrl: data.app ? data.app.downloadUrl : null,
+				isManualInstall: isManualInstall,
+				lastChecked: Date.now()
+			};
+			chrome.storage.local.set({ versionInfo: versionInfo });
+			log("Version check complete: current=" + EXTENSION_VERSION + ", latest=" + versionInfo.latestExtensionVersion + ", manual=" + isManualInstall);
+		})
+		.catch(function(err) {
+			log("Version check failed: " + err.message);
+		});
+}
+
+// Check on startup and every 6 hours
+checkForUpdates();
+setInterval(checkForUpdates, VERSION_CHECK_INTERVAL);
 
 
 var doIntSwitch = function() {
@@ -500,7 +546,7 @@ var connectNativeHost = function() {
 			if (message.action === "ready") {
 				log("Native host is ready, registering browser: " + browserBundleId);
 				// Register this extension with its browser's bundle ID
-				sendToNativeHost({ action: "register", bundleId: browserBundleId });
+				sendToNativeHost({ action: "register", bundleId: browserBundleId, extensionVersion: EXTENSION_VERSION });
 			} else if (message.action === "registered") {
 				log("Successfully registered with native host for browser: " + message.bundleId);
 			} else if (message.action === "pong") {
