@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Setup | Tab Switcher</title>
+    <meta name="description" content="Set up Tab Switcher on Windows. Install the browser extension and companion app.">
+    <meta property="og:title" content="Windows Setup — Tab Switcher">
+    <meta property="og:description" content="Set up Tab Switcher on Windows. Install the browser extension and companion app.">
+    <meta property="og:image" content="https://tabswitcher.app/og-image.png">
+    <meta property="og:url" content="https://tabswitcher.app/setup-windows">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Windows Setup — Tab Switcher">
+    <meta name="twitter:description" content="Set up Tab Switcher on Windows. Install the browser extension and companion app.">
+    <meta name="twitter:image" content="https://tabswitcher.app/og-image.png">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #08080a;
+            --surface: #111113;
+            --border: #1e1e21;
+            --text: #fafafa;
+            --text-muted: #71717a;
+            --accent: #e4e4e7;
+            --success: #22c55e;
+            --success-muted: rgba(34, 197, 94, 0.15);
+            --warning: #eab308;
+            --warning-muted: rgba(234, 179, 8, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 80px 24px;
+        }
+
+        header {
+            margin-bottom: 64px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            margin-bottom: 40px;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--text);
+        }
+
+        .back-link svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--success-muted);
+            color: var(--success);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 24px;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .status-badge svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .platform-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+            margin-right: 8px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .platform-badge svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        h1 {
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: clamp(2.5rem, 6vw, 3.5rem);
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .platform-switch {
+            margin-top: 20px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .platform-switch a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .platform-switch a:hover {
+            text-decoration: underline;
+        }
+
+        .steps {
+            margin: 48px 0;
+        }
+
+        .step {
+            display: grid;
+            grid-template-columns: 48px 1fr;
+            gap: 20px;
+            padding: 24px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .step:first-child {
+            border-top: 1px solid var(--border);
+        }
+
+        .step-indicator {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.85rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .step-content h3 {
+            font-size: 1.125rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .step-content p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--text);
+            color: var(--bg);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .note {
+            background: var(--warning-muted);
+            border: 1px solid rgba(234, 179, 8, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 48px;
+        }
+
+        .note-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--warning);
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .note-header svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .note p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .info-note {
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+
+        .info-note .note-header {
+            color: #60a5fa;
+        }
+
+        .info-note p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .ready-section {
+            margin-top: 64px;
+            padding-top: 48px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .ready-section h2 {
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: 1.5rem;
+            font-weight: 400;
+            margin-bottom: 24px;
+            color: var(--text-muted);
+        }
+
+        .keyboard-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 48px;
+            height: 40px;
+            padding: 0 14px;
+            background: linear-gradient(180deg, #1a1a1d 0%, #0f0f10 100%);
+            border: 1px solid #2a2a2d;
+            border-radius: 6px;
+            font-family: 'Geist Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent);
+            box-shadow:
+                0 1px 0 #2a2a2d,
+                0 4px 8px rgba(0,0,0,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        .key-separator {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .ready-hint {
+            margin-top: 16px;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        code {
+            background: var(--surface);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back
+            </a>
+            <div>
+                <span class="platform-badge">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+                    Windows
+                </span>
+                <span class="status-badge" style="background: var(--warning-muted); color: var(--warning); border-color: rgba(234, 179, 8, 0.2);">
+                    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                    Early Access
+                </span>
+            </div>
+            <h1>Windows Setup</h1>
+            <p class="subtitle">Three quick steps to get Tab Switcher running on Windows. No special permissions required.</p>
+            <p class="platform-switch">Looking for the <a href="setup.html">macOS setup guide</a>?</p>
+        </header>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-indicator">1</div>
+                <div class="step-content">
+                    <h3>Install the browser extension</h3>
+                    <p>Download the extension and load it in your Chromium browser:</p>
+                    <ol style="color: var(--text-muted); font-size: 0.9rem; margin: 12px 0; padding-left: 20px; line-height: 2;">
+                        <li>Download and unzip the <a href="https://github.com/nechemyaspitz/tab-switcher/archive/refs/heads/master.zip" style="color: var(--accent);">extension files</a></li>
+                        <li>Go to <code>chrome://extensions</code> in your browser</li>
+                        <li>Enable <strong>Developer mode</strong> (top right toggle)</li>
+                        <li>Click <strong>Load unpacked</strong> and select the unzipped folder</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-indicator">2</div>
+                <div class="step-content">
+                    <h3>Install the Windows app</h3>
+                    <p>Run the installer. It sets up the native messaging bridge between the extension and the app automatically.</p>
+                    <a href="TabSwitcher-3.7.4-Setup.exe" class="btn btn-primary" download>
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+                        Download for Windows
+                    </a>
+                    <div class="info-note" style="margin-top: 16px;">
+                        <div class="note-header">
+                            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                            SmartScreen warning
+                        </div>
+                        <p>Windows may show a SmartScreen warning because the app is new. Click <strong>More info</strong> then <strong>Run anyway</strong> to continue.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-indicator">3</div>
+                <div class="step-content">
+                    <h3>Connect the extension</h3>
+                    <p>Open the Tab Switcher app, then link it to your browser:</p>
+                    <ol style="color: var(--text-muted); font-size: 0.9rem; margin: 12px 0; padding-left: 20px; line-height: 2;">
+                        <li>Go to <code>chrome://extensions</code></li>
+                        <li>Find <strong>Tab Switcher</strong> and copy the <strong>ID</strong> (32-character string)</li>
+                        <li>In the Tab Switcher app, click your browser, paste the ID, and click <strong>Enable</strong></li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="note">
+            <div class="note-header">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                Why is a companion app needed?
+            </div>
+            <p>Browser extensions cannot intercept Ctrl+Tab — it's reserved by the browser. The native app captures this shortcut at the system level and communicates with the extension to show the visual switcher.</p>
+        </div>
+
+        <div class="info-note">
+            <div class="note-header">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                Supported browsers
+            </div>
+            <p>Chrome, Brave, Edge, Vivaldi, Opera, and other Chromium-based browsers. The same extension works across all of them — just enable each browser in the Tab Switcher app.</p>
+        </div>
+
+        <div class="ready-section">
+            <h2>Keyboard shortcuts</h2>
+            <div style="display: flex; flex-direction: column; gap: 16px; align-items: center; margin-bottom: 24px;">
+                <div>
+                    <div class="keyboard-hint">
+                        <span class="key">Ctrl</span>
+                        <span class="key-separator">+</span>
+                        <span class="key">Tab</span>
+                    </div>
+                    <p class="ready-hint">Hold Ctrl, press Tab to cycle, release to switch</p>
+                </div>
+                <div>
+                    <div class="keyboard-hint">
+                        <span class="key">Ctrl</span>
+                        <span class="key-separator">+</span>
+                        <span class="key">Shift</span>
+                        <span class="key-separator">+</span>
+                        <span class="key">C</span>
+                    </div>
+                    <p class="ready-hint">Copy the current tab's URL to your clipboard</p>
+                </div>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">All shortcuts can be customized in the Tab Switcher app settings.</p>
+        </div>
+    </div>
+</body>
+</html>
