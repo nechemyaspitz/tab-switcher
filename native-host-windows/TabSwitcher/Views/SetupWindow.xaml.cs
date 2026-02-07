@@ -126,7 +126,7 @@ namespace TabSwitcher.Views
             if (string.IsNullOrEmpty(_recordingShortcutTarget)) return;
 
             // Need at least one modifier
-            var mods = Keyboard.Modifiers;
+            var mods = System.Windows.Input.Keyboard.Modifiers;
             if (mods == ModifierKeys.None) return;
 
             int vkCode = KeyInterop.VirtualKeyFromKey(e.Key == Key.System ? e.SystemKey : e.Key);
