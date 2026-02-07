@@ -35,8 +35,7 @@
                 <TextBlock Text="BROWSERS"
                            FontSize="11" FontWeight="Medium"
                            Foreground="Gray"
-                           Margin="4,0,0,8"
-                           CharacterSpacing="50" />
+                           Margin="4,0,0,8" />
 
                 <Border Background="#0A808080" CornerRadius="10">
                     <ItemsControl x:Name="BrowserList">
@@ -158,8 +157,7 @@
                 <TextBlock Text="KEYBOARD SHORTCUTS"
                            FontSize="11" FontWeight="Medium"
                            Foreground="Gray"
-                           Margin="4,20,0,8"
-                           CharacterSpacing="50" />
+                           Margin="4,20,0,8" />
 
                 <Border Background="#0A808080" CornerRadius="10" Padding="12,8">
                     <StackPanel>
