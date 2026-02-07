@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>TabSwitcher</RootNamespace>
+    <AssemblyName>TabSwitcher</AssemblyName>
+    <ApplicationIcon>Resources\app-icon.ico</ApplicationIcon>
+    <Version>3.7.4</Version>
+    <FileVersion>3.7.4.0</FileVersion>
+    <AssemblyVersion>3.7.4.0</AssemblyVersion>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NetSparkleUpdater.SparkleUpdater" Version="2.3.0" />
+    <PackageReference Include="NetSparkleUpdater.UI.WPF" Version="2.3.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\app-icon.ico" />
+  </ItemGroup>
+
+</Project>

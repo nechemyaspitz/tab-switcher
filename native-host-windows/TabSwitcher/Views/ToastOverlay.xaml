@@ -1,0 +1,40 @@
+<Window x:Class="TabSwitcher.Views.ToastOverlay"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Toast"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Focusable="False"
+        ResizeMode="NoResize"
+        Width="290" Height="54">
+
+    <Border x:Name="ToastBorder"
+            CornerRadius="12"
+            Background="#38383838"
+            BorderBrush="#30FFFFFF"
+            BorderThickness="0.5"
+            Padding="14,10">
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#x2714;"
+                       FontSize="18"
+                       Foreground="#4DD96A"
+                       VerticalAlignment="Center"
+                       Margin="0,0,10,0" />
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock x:Name="MessageText"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           Foreground="White" />
+                <TextBlock x:Name="DetailText"
+                           FontSize="10"
+                           Foreground="#99FFFFFF"
+                           TextTrimming="CharacterEllipsis"
+                           MaxWidth="220" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

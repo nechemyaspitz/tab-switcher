@@ -3,31 +3,70 @@
     "id": "com.google.Chrome",
     "name": "Google Chrome",
     "appName": "Google Chrome",
-    "nativeMessagingPath": "Google/Chrome/NativeMessagingHosts"
+    "nativeMessagingPath": "Google/Chrome/NativeMessagingHosts",
+    "windows": {
+      "exeName": "chrome.exe",
+      "registryKey": "SOFTWARE\\Google\\Chrome\\NativeMessagingHosts",
+      "installPaths": [
+        "%PROGRAMFILES%\\Google\\Chrome\\Application\\chrome.exe",
+        "%LOCALAPPDATA%\\Google\\Chrome\\Application\\chrome.exe"
+      ]
+    }
   },
   {
     "id": "com.google.Chrome.dev",
     "name": "Google Chrome Dev",
     "appName": "Google Chrome Dev",
-    "nativeMessagingPath": "Google/Chrome Dev/NativeMessagingHosts"
+    "nativeMessagingPath": "Google/Chrome Dev/NativeMessagingHosts",
+    "windows": {
+      "exeName": "chrome.exe",
+      "registryKey": "SOFTWARE\\Google\\Chrome Dev\\NativeMessagingHosts",
+      "installPaths": [
+        "%PROGRAMFILES%\\Google\\Chrome Dev\\Application\\chrome.exe",
+        "%LOCALAPPDATA%\\Google\\Chrome Dev\\Application\\chrome.exe"
+      ]
+    }
   },
   {
     "id": "com.google.Chrome.canary",
     "name": "Google Chrome Canary",
     "appName": "Google Chrome Canary",
-    "nativeMessagingPath": "Google/Chrome Canary/NativeMessagingHosts"
+    "nativeMessagingPath": "Google/Chrome Canary/NativeMessagingHosts",
+    "windows": {
+      "exeName": "chrome.exe",
+      "registryKey": "SOFTWARE\\Google\\Chrome SxS\\NativeMessagingHosts",
+      "installPaths": [
+        "%LOCALAPPDATA%\\Google\\Chrome SxS\\Application\\chrome.exe"
+      ]
+    }
   },
   {
     "id": "com.brave.Browser",
     "name": "Brave",
     "appName": "Brave Browser",
-    "nativeMessagingPath": "BraveSoftware/Brave-Browser/NativeMessagingHosts"
+    "nativeMessagingPath": "BraveSoftware/Brave-Browser/NativeMessagingHosts",
+    "windows": {
+      "exeName": "brave.exe",
+      "registryKey": "SOFTWARE\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts",
+      "installPaths": [
+        "%PROGRAMFILES%\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+        "%LOCALAPPDATA%\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
+      ]
+    }
   },
   {
     "id": "com.microsoft.edgemac",
     "name": "Microsoft Edge",
     "appName": "Microsoft Edge",
-    "nativeMessagingPath": "Microsoft Edge/NativeMessagingHosts"
+    "nativeMessagingPath": "Microsoft Edge/NativeMessagingHosts",
+    "windows": {
+      "exeName": "msedge.exe",
+      "registryKey": "SOFTWARE\\Microsoft\\Edge\\NativeMessagingHosts",
+      "installPaths": [
+        "%PROGRAMFILES(X86)%\\Microsoft\\Edge\\Application\\msedge.exe",
+        "%PROGRAMFILES%\\Microsoft\\Edge\\Application\\msedge.exe"
+      ]
+    }
   },
   {
     "id": "company.thebrowser.Browser",
@@ -39,25 +78,53 @@
     "id": "com.vivaldi.Vivaldi",
     "name": "Vivaldi",
     "appName": "Vivaldi",
-    "nativeMessagingPath": "Vivaldi/NativeMessagingHosts"
+    "nativeMessagingPath": "Vivaldi/NativeMessagingHosts",
+    "windows": {
+      "exeName": "vivaldi.exe",
+      "registryKey": "SOFTWARE\\Vivaldi\\NativeMessagingHosts",
+      "installPaths": [
+        "%LOCALAPPDATA%\\Vivaldi\\Application\\vivaldi.exe"
+      ]
+    }
   },
   {
     "id": "com.operasoftware.Opera",
     "name": "Opera",
     "appName": "Opera",
-    "nativeMessagingPath": "com.operasoftware.Opera/NativeMessagingHosts"
+    "nativeMessagingPath": "com.operasoftware.Opera/NativeMessagingHosts",
+    "windows": {
+      "exeName": "opera.exe",
+      "registryKey": "SOFTWARE\\Google\\Chrome\\NativeMessagingHosts",
+      "installPaths": [
+        "%LOCALAPPDATA%\\Programs\\Opera\\opera.exe"
+      ]
+    }
   },
   {
     "id": "com.operasoftware.OperaGX",
     "name": "Opera GX",
     "appName": "Opera GX",
-    "nativeMessagingPath": "com.operasoftware.OperaGX/NativeMessagingHosts"
+    "nativeMessagingPath": "com.operasoftware.OperaGX/NativeMessagingHosts",
+    "windows": {
+      "exeName": "opera.exe",
+      "registryKey": "SOFTWARE\\Google\\Chrome\\NativeMessagingHosts",
+      "installPaths": [
+        "%LOCALAPPDATA%\\Programs\\Opera GX\\opera.exe"
+      ]
+    }
   },
   {
     "id": "org.chromium.Chromium",
     "name": "Chromium",
     "appName": "Chromium",
-    "nativeMessagingPath": "Chromium/NativeMessagingHosts"
+    "nativeMessagingPath": "Chromium/NativeMessagingHosts",
+    "windows": {
+      "exeName": "chrome.exe",
+      "registryKey": "SOFTWARE\\Chromium\\NativeMessagingHosts",
+      "installPaths": [
+        "%LOCALAPPDATA%\\Chromium\\Application\\chrome.exe"
+      ]
+    }
   },
   {
     "id": "net.imput.helium",
@@ -81,6 +148,13 @@
     "id": "org.chromium.Thorium",
     "name": "Thorium",
     "appName": "Thorium",
-    "nativeMessagingPath": "Thorium/NativeMessagingHosts"
+    "nativeMessagingPath": "Thorium/NativeMessagingHosts",
+    "windows": {
+      "exeName": "thorium.exe",
+      "registryKey": "SOFTWARE\\Thorium\\NativeMessagingHosts",
+      "installPaths": [
+        "%PROGRAMFILES%\\Thorium\\Application\\thorium.exe"
+      ]
+    }
   }
 ]
