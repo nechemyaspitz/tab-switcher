@@ -98,21 +98,17 @@ namespace TabSwitcher
 
         private bool DetectLaunchMode(string[] args)
         {
-            // Check for chrome-extension:// argument (native messaging launch)
+            // Check for chrome-extension:// argument (native messaging launch).
+            // This is the reliable indicator — Chrome always passes this arg when launching native messaging hosts.
+            // Note: Console.IsInputRedirected is NOT reliable here because WinExe apps have no console,
+            // which causes IsInputRedirected to return true even for direct launches.
             if (args.Any(a => a.StartsWith("chrome-extension://")))
             {
                 DebugLogger.Log("Detected chrome-extension:// arg - launched via native messaging");
                 return false;
             }
 
-            // Check if stdin is redirected (pipe from browser)
-            if (Console.IsInputRedirected)
-            {
-                DebugLogger.Log("stdin is redirected - launched via native messaging");
-                return false;
-            }
-
-            DebugLogger.Log("No native messaging indicators - direct launch");
+            DebugLogger.Log("No chrome-extension:// arg - direct launch");
             return true;
         }
 
