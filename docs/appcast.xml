@@ -9,8 +9,8 @@
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure url="https://tabswitcher.app/Tab%20Switcher%203.7.4.dmg"
                 type="application/octet-stream"
-                sparkle:edSignature="HkgZj41dkIjo3TRs4CkWrnAtyMtbNXqV/jmIWYRLFB/2LJ0lMXG4d9c03zC63AEQGMwLYcF1IHw0DDBZsCY7BQ=="
-                length="2515674" />
+                sparkle:edSignature="mi9G5sZFvhL5AXkE0rvBS0CPLyHbL/q9rlksibG9IRw7ogLW8R4wZrlHmIoJdGWZt2pM+3+8OS8ykjXa9dsJCA=="
+                length="2510620" />
         </item>
     </channel>
 </rss>
