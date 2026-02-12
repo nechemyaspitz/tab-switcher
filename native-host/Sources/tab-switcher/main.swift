@@ -6,7 +6,7 @@ import ApplicationServices
 import Sparkle
 import UserNotifications
 
-let APP_VERSION = "3.7.4"
+let APP_VERSION = "3.7.5"
 let CWS_EXTENSION_ID = "pbpgegamabjlnegmfcjelciaenfkmfoo"
 let CWS_URL = "https://chromewebstore.google.com/detail/tab-switcher/pbpgegamabjlnegmfcjelciaenfkmfoo"
 
