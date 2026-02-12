@@ -7,6 +7,8 @@ import Sparkle
 import UserNotifications
 
 let APP_VERSION = "3.7.4"
+let CWS_EXTENSION_ID = "pbpgegamabjlnegmfcjelciaenfkmfoo"
+let CWS_URL = "https://chromewebstore.google.com/detail/tab-switcher/pbpgegamabjlnegmfcjelciaenfkmfoo"
 
 // MARK: - Keyboard Shortcut Configuration
 
@@ -404,9 +406,8 @@ class BrowserConfigManager: ObservableObject {
         updateManifests()
     }
     
-    func enableBrowser(id: String, extensionId: String) {
+    func enableBrowser(id: String) {
         if let index = browsers.firstIndex(where: { $0.id == id }) {
-            browsers[index].extensionId = extensionId
             browsers[index].isEnabled = true
             saveConfig()
         }
@@ -441,20 +442,26 @@ class BrowserConfigManager: ObservableObject {
         for browser in browsers {
             let manifestDir = browser.fullNativeMessagingPath
             let manifestPath = "\(manifestDir)/com.tabswitcher.native.json"
-            
-            if browser.isEnabled, let extId = browser.extensionId, !extId.isEmpty {
+
+            if browser.isEnabled {
                 // Create manifest directory if needed
                 try? FileManager.default.createDirectory(atPath: manifestDir, withIntermediateDirectories: true)
-                
+
+                // Always include CWS extension ID; also include legacy manual ID for backward compat
+                var origins = ["chrome-extension://\(CWS_EXTENSION_ID)/"]
+                if let legacyId = browser.extensionId, !legacyId.isEmpty, legacyId != CWS_EXTENSION_ID {
+                    origins.append("chrome-extension://\(legacyId)/")
+                }
+
                 // Create manifest
                 let manifest: [String: Any] = [
                     "name": "com.tabswitcher.native",
                     "description": "Tab Switcher Native Helper",
                     "path": nativeHostPath,
                     "type": "stdio",
-                    "allowed_origins": ["chrome-extension://\(extId)/"]
+                    "allowed_origins": origins
                 ]
-                
+
                 if let data = try? JSONSerialization.data(withJSONObject: manifest, options: .prettyPrinted) {
                     try? data.write(to: URL(fileURLWithPath: manifestPath))
                     debugLog("Created manifest for \(browser.name) at \(manifestPath)")
@@ -1007,29 +1014,17 @@ struct SetupView: View {
                                 .buttonStyle(.plain)
                             }
 
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("1. Download the latest extension package")
-                                Text("2. Unzip and replace the old extension folder")
-                                Text("3. Open chrome://extensions")
-                                Text("4. Click the reload icon on Tab Switcher")
-                            }
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            Text("Install the latest version from the Chrome Web Store for automatic updates.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
 
-                            HStack(spacing: 8) {
-                                Button("Download") {
-                                    if let url = URL(string: "https://github.com/nechemyaspitz/tab-switcher/archive/refs/heads/master.zip") {
-                                        NSWorkspace.shared.open(url)
-                                    }
+                            Button("Open Chrome Web Store") {
+                                if let url = URL(string: CWS_URL) {
+                                    NSWorkspace.shared.open(url)
                                 }
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.small)
-                                Button("Copy chrome://extensions") {
-                                    NSPasteboard.general.clearContents()
-                                    NSPasteboard.general.setString("chrome://extensions", forType: .string)
-                                }
-                                .controlSize(.small)
                             }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
                         }
                         .padding(12)
                         .background(Color.orange.opacity(0.08))
@@ -1092,10 +1087,15 @@ struct BrowserRowView: View {
     let browser: BrowserInfo
     @ObservedObject var configManager = BrowserConfigManager.shared
     @State private var isExpanded = false
-    @State private var extensionId: String = ""
 
     private var currentBrowser: BrowserInfo? {
         configManager.browsers.first { $0.id == browser.id }
+    }
+
+    /// Whether this browser has a legacy (non-CWS) manual extension ID
+    private var hasLegacyExtensionId: Bool {
+        guard let extId = currentBrowser?.extensionId, !extId.isEmpty else { return false }
+        return extId != CWS_EXTENSION_ID
     }
 
     var body: some View {
@@ -1104,9 +1104,6 @@ struct BrowserRowView: View {
             Button {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     isExpanded.toggle()
-                    if isExpanded {
-                        extensionId = currentBrowser?.extensionId ?? ""
-                    }
                 }
             } label: {
                 HStack(spacing: 10) {
@@ -1169,6 +1166,33 @@ struct BrowserRowView: View {
                             .controlSize(.small)
                         }
 
+                        // Migration notice for users with manually-loaded extension
+                        if hasLegacyExtensionId {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.orange)
+                                        .font(.system(size: 10))
+                                    Text("Using manually loaded extension")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundColor(.orange)
+                                }
+                                Text("Install from the Chrome Web Store for automatic updates, then remove the manually loaded version.")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.secondary)
+                                Button("Open Chrome Web Store") {
+                                    if let url = URL(string: CWS_URL) {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                }
+                                .controlSize(.small)
+                                .font(.system(size: 11))
+                            }
+                            .padding(8)
+                            .background(Color.orange.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+
                         Button("Disable Browser") {
                             configManager.disableBrowser(id: browser.id)
                         }
@@ -1176,42 +1200,22 @@ struct BrowserRowView: View {
                         .foregroundColor(.red)
                         .buttonStyle(.plain)
                     } else {
-                        // Not enabled — show extension ID input
-                        Text("Paste the extension ID from \(browser.name)")
+                        // Not enabled — simple enable button
+                        Text("Enable Tab Switcher for \(browser.name)")
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
 
-                        Text("Extensions \u{2192} Developer Mode \u{2192} Copy ID")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary.opacity(0.7))
-
-                        HStack(spacing: 6) {
-                            PastableTextField(text: $extensionId, placeholder: "32-character extension ID")
-                                .frame(height: 22)
-                            Button("Enable") {
-                                if extensionId.count == 32 {
-                                    configManager.enableBrowser(id: browser.id, extensionId: extensionId)
-                                }
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                            .disabled(extensionId.count != 32)
+                        Button("Enable") {
+                            configManager.enableBrowser(id: browser.id)
                         }
-
-                        if !extensionId.isEmpty && extensionId.count != 32 {
-                            Text("\(extensionId.count)/32 characters")
-                                .font(.system(size: 10))
-                                .foregroundColor(.red)
-                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
                     }
                 }
                 .padding(.horizontal, 12)
                 .padding(.bottom, 10)
                 .transition(.opacity)
             }
-        }
-        .onAppear {
-            extensionId = currentBrowser?.extensionId ?? ""
         }
     }
 }
